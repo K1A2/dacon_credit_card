@@ -310,6 +310,15 @@ class PreprocesserGBoost():
         birth = np.abs(df['DAYS_BIRTH'].values)
         df.loc[:, 'Age'] = birth // 365
         df.drop(['DAYS_BIRTH'], inplace=True, axis=1)
+        age_threshold = [0, 20, 30, 40, 50, 60]
+        for i in range(len(age_threshold)):
+            df.loc[df['Age'] >= age_threshold[i], 'Age_range'] = i
+        d = []
+        for i in df['Age_range'].values:
+            one = [0 for _ in range(len(age_threshold))]
+            one[int(i)] = 1
+            d.append(one)
+        X = np.concatenate([X, np.asarray(d)], axis=1)
 
         # working_day -> year, month, day
         working_day = np.abs(df['working_day'].values)
@@ -318,21 +327,63 @@ class PreprocesserGBoost():
         df.loc[:, 'working_month'] = working_day // 30
         working_day %= 30
         df.loc[:, 'working_day'] = working_day
+        year_threshold = [0, 2, 5, 8, 11, 15, 20]
+        for i in range(len(year_threshold)):
+            df.loc[df['working_year'] >= year_threshold[i], 'working_year_range'] = i
+        d = []
+        for i in df['working_year_range'].values:
+            one = [0 for _ in range(len(year_threshold))]
+            one[int(i)] = 1
+            d.append(one)
+        X = np.concatenate([X, np.asarray(d)], axis=1)
+        d = []
+        for i in df['working_month'].values:
+            one = [0 for _ in range(12)]
+            one[int(i - 1)] = 1
+            d.append(one)
+        X = np.concatenate([X, np.asarray(d)], axis=1)
+        d = []
+        for i in df['working_day'].values:
+            one = [0 for _ in range(30)]
+            one[int(i - 1)] = 1
+            d.append(one)
+        X = np.concatenate([X, np.asarray(d)], axis=1)
 
         # begin_month -> year, month:
         begin_month = np.abs(df['begin_month'].values)
         df.loc[:, 'begin_year'] = begin_month // 12
         begin_month %= 12
         df.loc[:, 'begin_month'] = begin_month
+        year_threshold = [0, 1, 2, 3, 4, 5]
+        for i in range(len(year_threshold)):
+            df.loc[df['begin_year'] >= year_threshold[i], 'begin_year_range'] = i
+        d = []
+        for i in df['begin_year_range'].values:
+            one = [0 for _ in range(len(year_threshold))]
+            one[int(i)] = 1
+            d.append(one)
+        X = np.concatenate([X, np.asarray(d)], axis=1)
+        d = []
+        for i in df['begin_month'].values:
+            one = [0 for _ in range(12)]
+            one[int(i - 1)] = 1
+            d.append(one)
+        X = np.concatenate([X, np.asarray(d)], axis=1)
 
         # Annual_income -> Annual_income_range
         incoume_threshold = [0, 25000, 50000, 80000, 120000, 200000, 280000, 360000, 420000, 500000, 620000, 750000, 1000000]
         for i in range(len(incoume_threshold)):
             df.loc[df['Annual_income'] >= incoume_threshold[i], 'Annual_income_range'] = i
         df.drop(['Annual_income'], inplace=True, axis=1)
+        d = []
+        for i in df['Annual_income_range'].values:
+            one = [0 for _ in range(len(incoume_threshold))]
+            one[int(i)] = 1
+            d.append(one)
+        X = np.concatenate([X, np.asarray(d)], axis=1)
 
-        X = np.concatenate([X, df[['Age', 'working_year', 'working_month', 'working_day',
-                                   'begin_year', 'begin_month', 'Annual_income_range']].values], axis=1)
+        # X = np.concatenate([X, df[['Age_range', 'working_year_range', 'working_month', 'working_day',
+        #                            'begin_year_range', 'begin_month', 'Annual_income_range']].values], axis=1)
         print(X.shape)
         print(X)
         return X

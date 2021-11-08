@@ -4,6 +4,7 @@ from sklearn.model_selection import train_test_split
 from catboost import CatBoostClassifier
 from tensorflow.keras.utils import to_categorical
 from sklearn.metrics import log_loss
+import pandas as pd
 
 def main():
     dataio = DataIO.DataReadWrite()
@@ -27,7 +28,13 @@ def main():
     model = CatBoostClassifier(logging_level='Silent')
     model.fit(X_train, y_train, eval_set=(X_test, y_test))
     y_pred = model.predict_proba(X_test)
-    print(f"CatBoostClassifier log_loss: {log_loss(to_categorical(y_test), y_pred)}")
+    loss = log_loss(to_categorical(y_test), y_pred)
+    print(f"CatBoostClassifier log_loss: {loss}")
+
+    pred_sub = model.predict_proba(X_submmit)
+    submission = pd.read_csv('./data/sample_submission.csv')
+    submission.loc[:, 1:] = pred_sub
+    submission.to_csv(f'./data/submission/{loss}_xgboost.csv', index=False)
 
 if __name__ == '__main__':
     main()
