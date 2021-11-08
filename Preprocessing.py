@@ -21,22 +21,24 @@ from sklearn.model_selection import train_test_split
 # car_reality under_tome {0, none, random_under}
 # credit under_tome {0.0, none.0, random_under.0}
 
+default_path = './data/'
+label_all_data = {'gender': ['F', 'M'],
+                    'income_type': ['Working', 'Commercial associate', 'Pensioner', 'State servant', 'Student'],
+                    'Education': ['Secondary / secondary special', 'Higher education',
+                                  'Incomplete higher', 'Lower secondary', 'Academic degree'],
+                    'family_type': ['Married', 'Single / not married', 'Civil marriage', 'Separated', 'Widow'],
+                    'house_type': ['House / apartment', 'With parents', 'Municipal apartment', 'Rented apartment',
+                                   'Office apartment', 'Co-op apartment'],
+                    'occyp_type': ['none', 'Laborers', 'Core staff', 'Sales staff', 'Managers', 'Drivers',
+                                   'High skill tech staff', 'Accountants', 'Medicine staff', 'Cooking staff',
+                                   'Security staff', 'Cleaning staff', 'Private service staff', 'Low-skill Laborers',
+                                   'Waiters/barmen staff', 'Secretaries', 'Realty agents', 'HR staff', 'IT staff'],
+                    'Age': [0, 20, 30, 40, 50, 60],
+                    'work_phone': [0, 1], 'phone': [0, 1], 'email': [0, 1], 'car_reality': [0, 1, 2],
+                    'credit': [0.0, 1.0, 2.0]}
 class Preprocess():
-    __default_path = './data/'
-    __label_all_data = {'gender': ['F', 'M'],
-                        'income_type': ['Working', 'Commercial associate', 'Pensioner', 'State servant', 'Student'],
-                        'Education': ['Secondary / secondary special', 'Higher education',
-                                      'Incomplete higher', 'Lower secondary', 'Academic degree'],
-                        'family_type': ['Married', 'Single / not married', 'Civil marriage', 'Separated', 'Widow'],
-                        'house_type': ['House / apartment', 'With parents', 'Municipal apartment', 'Rented apartment',
-                                       'Office apartment', 'Co-op apartment'],
-                        'occyp_type': ['none', 'Laborers', 'Core staff', 'Sales staff', 'Managers', 'Drivers',
-                                       'High skill tech staff', 'Accountants', 'Medicine staff', 'Cooking staff',
-                                       'Security staff', 'Cleaning staff', 'Private service staff', 'Low-skill Laborers',
-                                       'Waiters/barmen staff', 'Secretaries', 'Realty agents', 'HR staff', 'IT staff'],
-                        'work_phone': [0, 1], 'phone': [0, 1], 'email': [0, 1], 'car_reality': [0, 1, 2], 'credit': [0.0, 1.0, 2.0]}
 
-    def __z_score_nomalizer(self, type, df:pd.DataFrame):
+    def z_score_nomalizer(self, type, df:pd.DataFrame):
         data = [df.mean(), df.std()]
         if type == 'test':
             with open(self.__default_path + 'z_score', 'rb') as f:
@@ -97,14 +99,14 @@ class Preprocess():
         # ppdd = drop_df[numeric_column + ['credit']]
         # sns.pairplot(ppdd, vars=ppdd.columns[:-1], hue='credit')
         # plt.show()
-        print('maek plot finish')
+        print('make plot finish')
 
     def train_data_preprocess(self, df:pd.DataFrame):
         drop_df = df.drop(['index', 'FLAG_MOBIL'], axis=1)
         numeric_column = ['Annual_income', 'DAYS_BIRTH', 'working_day', 'begin_month']
         categorical_column = ['gender', 'income_type', 'Education', 'family_type', 'house_type',
                                  'work_phone', 'phone', 'email', 'occyp_type', 'car_reality', 'credit']
-        drop_df[numeric_column] = self.__z_score_nomalizer('train', drop_df[numeric_column])
+        drop_df[numeric_column] = self.z_score_nomalizer('train', drop_df[numeric_column])
 
         X = drop_df[numeric_column].values
 
@@ -165,7 +167,7 @@ class Preprocess():
         df_X, df_Y = sample.fit_resample(drop_df.drop(['credit'], axis=1).values, drop_df[['credit']].values)
         df_Y = np.reshape(df_Y, (-1, 1))
         drop_df = pd.DataFrame(np.concatenate([df_X, df_Y], axis=1), columns=numeric_column + categorical_column)
-        drop_df[numeric_column] = self.__z_score_nomalizer('train', drop_df[numeric_column])
+        drop_df[numeric_column] = self.z_score_nomalizer('train', drop_df[numeric_column])
 
         X = drop_df[numeric_column].values
 
@@ -219,8 +221,8 @@ class Preprocess():
         df_X, df_Y = sample.fit_resample(df_train.drop(['credit'], axis=1).values, df_train[['credit']].values)
         df_Y = np.reshape(df_Y, (-1, 1))
         df_train = pd.DataFrame(np.concatenate([df_X, df_Y], axis=1), columns=numeric_column + categorical_column)
-        df_train[numeric_column] = self.__z_score_nomalizer('train', df_train[numeric_column])
-        df_test[numeric_column] = self.__z_score_nomalizer('test', df_test[numeric_column])
+        df_train[numeric_column] = self.z_score_nomalizer('train', df_train[numeric_column])
+        df_test[numeric_column] = self.z_score_nomalizer('test', df_test[numeric_column])
 
         X_train = df_train[numeric_column].values
         X_test = df_test[numeric_column].values
@@ -259,7 +261,7 @@ class Preprocess():
         numeric_column = ['Annual_income', 'DAYS_BIRTH', 'working_day', 'begin_month']
         categorical_column = ['gender', 'income_type', 'Education', 'family_type', 'house_type',
                               'work_phone', 'phone', 'email', 'occyp_type', 'car_reality']
-        drop_df[numeric_column] = self.__z_score_nomalizer('test', drop_df[numeric_column])
+        drop_df[numeric_column] = self.z_score_nomalizer('test', drop_df[numeric_column])
 
         X = drop_df[numeric_column].values
         print(X.shape)
@@ -274,4 +276,63 @@ class Preprocess():
             X = np.concatenate([X, label], axis=1)
 
         print('test preprocessing complete')
+        return X
+
+
+#랭킹가우스
+class PreprocesserGBoost():
+    def data_preprocess_2(self, df:pd.DataFrame):
+        # 쓸데없는 데이터 제거
+        df = df.drop(['index', 'FLAG_MOBIL'], axis=1)
+        numeric_column = ['Annual_income', 'DAYS_BIRTH', 'working_day', 'begin_month']
+        categorical_column = ['gender', 'income_type', 'Education', 'family_type', 'house_type',
+                              'work_phone', 'phone', 'email', 'occyp_type', 'car_reality']
+        df = df.fillna('none')
+
+        X = np.zeros((df.shape[0], 1))
+        # LabelEncoding, OneHotEncoding
+        for column in categorical_column:
+            encoder = label_all_data[column]
+            if column not in  ['work_phone', 'phone', 'email', 'car_reality']:
+                encoding = []
+                for d in df[column].values:
+                    encoding.append(encoder.index(d))
+                df.loc[:,column] = np.asarray(encoding)
+            encoding = []
+            for d in df[column].values:
+                e = [0 for _ in range(len(encoder))]
+                e[d] = 1
+                encoding.append(e)
+            X = np.concatenate([X, np.asarray(encoding)], axis=1)
+        X = X[:, 1:]
+
+        # birth -> age
+        birth = np.abs(df['DAYS_BIRTH'].values)
+        df.loc[:, 'Age'] = birth // 365
+        df.drop(['DAYS_BIRTH'], inplace=True, axis=1)
+
+        # working_day -> year, month, day
+        working_day = np.abs(df['working_day'].values)
+        df.loc[:, 'working_year'] = working_day // 365
+        working_day %= 365
+        df.loc[:, 'working_month'] = working_day // 30
+        working_day %= 30
+        df.loc[:, 'working_day'] = working_day
+
+        # begin_month -> year, month:
+        begin_month = np.abs(df['begin_month'].values)
+        df.loc[:, 'begin_year'] = begin_month // 12
+        begin_month %= 12
+        df.loc[:, 'begin_month'] = begin_month
+
+        # Annual_income -> Annual_income_range
+        incoume_threshold = [0, 25000, 50000, 80000, 120000, 200000, 280000, 360000, 420000, 500000, 620000, 750000, 1000000]
+        for i in range(len(incoume_threshold)):
+            df.loc[df['Annual_income'] >= incoume_threshold[i], 'Annual_income_range'] = i
+        df.drop(['Annual_income'], inplace=True, axis=1)
+
+        X = np.concatenate([X, df[['Age', 'working_year', 'working_month', 'working_day',
+                                   'begin_year', 'begin_month', 'Annual_income_range']].values], axis=1)
+        print(X.shape)
+        print(X)
         return X
