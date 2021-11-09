@@ -117,7 +117,8 @@ class AutoSaveCallback(Callback):
         os.makedirs(self.__save_path)
 
     def on_epoch_end(self, epoch, logs=None):
-        now_loss = logs['val_categorical_crossentropy']
+        # now_loss = logs['val_categorical_crossentropy']
+        now_loss = logs['val_binary_crossentropy']
         if self.loss > now_loss:
             save_model(self.model, self.__save_path + f'{epoch}_{str(now_loss).replace(".", "_")}.h5')
             self.loss = now_loss

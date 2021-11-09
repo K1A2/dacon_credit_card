@@ -36,17 +36,31 @@ label_all_data = {'gender': ['F', 'M'],
                     'Age': [0, 20, 30, 40, 50, 60],
                     'work_phone': [0, 1], 'phone': [0, 1], 'email': [0, 1], 'car_reality': [0, 1, 2],
                     'credit': [0.0, 1.0, 2.0]}
-class Preprocess():
 
-    def z_score_nomalizer(self, type, df:pd.DataFrame):
-        data = [df.mean(), df.std()]
-        if type == 'test':
-            with open(self.__default_path + 'z_score', 'rb') as f:
-                data = pickle.load(f)
-        else:
-            with open(self.__default_path + 'z_score', 'wb') as f:
-                pickle.dump(data, f)
-        return (df - data[0]) / data[1]
+
+def gauss_nomalizer(type, df: pd.DataFrame):
+    scaler = GaussRankScaler()
+    if type == 'test':
+        with open(default_path + 'z_score', 'rb') as f:
+            scaler = pickle.load(f)
+    else:
+        with open(default_path + 'z_score', 'wb') as f:
+            scaler.fit(df.values)
+            pickle.dump(scaler, f)
+    return pd.DataFrame(scaler.transform(df.values), columns=df.columns.tolist())
+
+def z_score_nomalizer(type, df: pd.DataFrame):
+    data = [df.mean(), df.std()]
+    if type == 'test':
+        with open(default_path + 'z_score', 'rb') as f:
+            data = pickle.load(f)
+    else:
+        with open(default_path + 'z_score', 'wb') as f:
+            pickle.dump(data, f)
+    return (df - data[0]) / data[1]
+
+
+class Preprocess():
 
     def make_analyze_plot(self, df:pd.DataFrame):
         drop_df = df.drop(['index', 'FLAG_MOBIL'], axis=1)
@@ -106,7 +120,7 @@ class Preprocess():
         numeric_column = ['Annual_income', 'DAYS_BIRTH', 'working_day', 'begin_month']
         categorical_column = ['gender', 'income_type', 'Education', 'family_type', 'house_type',
                                  'work_phone', 'phone', 'email', 'occyp_type', 'car_reality', 'credit']
-        drop_df[numeric_column] = self.z_score_nomalizer('train', drop_df[numeric_column])
+        drop_df[numeric_column] = z_score_nomalizer('train', drop_df[numeric_column])
 
         X = drop_df[numeric_column].values
 
@@ -167,7 +181,7 @@ class Preprocess():
         df_X, df_Y = sample.fit_resample(drop_df.drop(['credit'], axis=1).values, drop_df[['credit']].values)
         df_Y = np.reshape(df_Y, (-1, 1))
         drop_df = pd.DataFrame(np.concatenate([df_X, df_Y], axis=1), columns=numeric_column + categorical_column)
-        drop_df[numeric_column] = self.z_score_nomalizer('train', drop_df[numeric_column])
+        drop_df[numeric_column] = z_score_nomalizer('train', drop_df[numeric_column])
 
         X = drop_df[numeric_column].values
 
@@ -207,7 +221,7 @@ class Preprocess():
         for column in categorical_column:
             if column not in ['work_phone', 'phone', 'email', 'car_reality']:
                 encoder = LabelEncoder()
-                encoder.fit(self.__label_all_data[column])
+                encoder.fit(label_all_data[column])
                 df_train[column] = pd.DataFrame(encoder.transform(df_train[column].values).reshape(-1, 1), columns=[column])
                 df_test[column] = pd.DataFrame(encoder.transform(df_test[column].values).reshape(-1, 1), columns=[column])
 
@@ -221,8 +235,8 @@ class Preprocess():
         df_X, df_Y = sample.fit_resample(df_train.drop(['credit'], axis=1).values, df_train[['credit']].values)
         df_Y = np.reshape(df_Y, (-1, 1))
         df_train = pd.DataFrame(np.concatenate([df_X, df_Y], axis=1), columns=numeric_column + categorical_column)
-        df_train[numeric_column] = self.z_score_nomalizer('train', df_train[numeric_column])
-        df_test[numeric_column] = self.z_score_nomalizer('test', df_test[numeric_column])
+        df_train[numeric_column] = z_score_nomalizer('train', df_train[numeric_column])
+        df_test[numeric_column] = z_score_nomalizer('test', df_test[numeric_column])
 
         X_train = df_train[numeric_column].values
         X_test = df_test[numeric_column].values
@@ -261,7 +275,7 @@ class Preprocess():
         numeric_column = ['Annual_income', 'DAYS_BIRTH', 'working_day', 'begin_month']
         categorical_column = ['gender', 'income_type', 'Education', 'family_type', 'house_type',
                               'work_phone', 'phone', 'email', 'occyp_type', 'car_reality']
-        drop_df[numeric_column] = self.z_score_nomalizer('test', drop_df[numeric_column])
+        drop_df[numeric_column] = z_score_nomalizer('test', drop_df[numeric_column])
 
         X = drop_df[numeric_column].values
         print(X.shape)
@@ -280,8 +294,9 @@ class Preprocess():
 
 
 #랭킹가우스
+from GaussRankScaler import GaussRankScaler
 class PreprocesserGBoost():
-    def data_preprocess_2(self, df:pd.DataFrame):
+    def data_preprocess_2(self, df:pd.DataFrame, type):
         # 쓸데없는 데이터 제거
         df = df.drop(['index', 'FLAG_MOBIL'], axis=1)
         numeric_column = ['Annual_income', 'DAYS_BIRTH', 'working_day', 'begin_month']
@@ -306,11 +321,44 @@ class PreprocesserGBoost():
             X = np.concatenate([X, np.asarray(encoding)], axis=1)
         X = X[:, 1:]
 
+
+        df.loc[:,'not_working_day'] = np.abs(df['DAYS_BIRTH'].values) - np.abs(df['working_day'].values)
+        not_working_day = df['not_working_day'].values
+        print(not_working_day)
+        df.loc[:, 'not_working_year'] = not_working_day // 365
+        not_working_day %= 365
+        df.loc[:, 'not_working_month'] = not_working_day // 30
+        not_working_day %= 30
+        df.loc[:, 'not_working_week'] = not_working_day // 7
+
+        year_threshold = [0, 2, 5, 8, 11, 15, 20]
+        for i in range(len(year_threshold)):
+            df.loc[df['not_working_year'] >= year_threshold[i], 'not_working_year_range'] = i
+        d = []
+        for i in df['not_working_year_range'].values:
+            one = [0 for _ in range(len(year_threshold))]
+            one[int(i)] = 1
+            d.append(one)
+        X = np.concatenate([X, np.asarray(d)], axis=1)
+        d = []
+        for i in df['not_working_month'].values:
+            one = [0 for _ in range(12)]
+            one[int(i - 1)] = 1
+            d.append(one)
+        X = np.concatenate([X, np.asarray(d)], axis=1)
+        d = []
+        for i in df['not_working_week'].values:
+            one = [0 for _ in range(7)]
+            one[int(i - 1)] = 1
+            d.append(one)
+        X = np.concatenate([X, np.asarray(d)], axis=1)
+
+
         # birth -> age
         birth = np.abs(df['DAYS_BIRTH'].values)
         df.loc[:, 'Age'] = birth // 365
-        df.drop(['DAYS_BIRTH'], inplace=True, axis=1)
         age_threshold = [0, 20, 30, 40, 50, 60]
+
         for i in range(len(age_threshold)):
             df.loc[df['Age'] >= age_threshold[i], 'Age_range'] = i
         d = []
@@ -320,13 +368,15 @@ class PreprocesserGBoost():
             d.append(one)
         X = np.concatenate([X, np.asarray(d)], axis=1)
 
+
         # working_day -> year, month, day
         working_day = np.abs(df['working_day'].values)
         df.loc[:, 'working_year'] = working_day // 365
         working_day %= 365
         df.loc[:, 'working_month'] = working_day // 30
         working_day %= 30
-        df.loc[:, 'working_day'] = working_day
+        df.loc[:, 'working_week'] = working_day // 7
+
         year_threshold = [0, 2, 5, 8, 11, 15, 20]
         for i in range(len(year_threshold)):
             df.loc[df['working_year'] >= year_threshold[i], 'working_year_range'] = i
@@ -343,17 +393,19 @@ class PreprocesserGBoost():
             d.append(one)
         X = np.concatenate([X, np.asarray(d)], axis=1)
         d = []
-        for i in df['working_day'].values:
-            one = [0 for _ in range(30)]
+        for i in df['working_week'].values:
+            one = [0 for _ in range(7)]
             one[int(i - 1)] = 1
             d.append(one)
         X = np.concatenate([X, np.asarray(d)], axis=1)
+
 
         # begin_month -> year, month:
         begin_month = np.abs(df['begin_month'].values)
         df.loc[:, 'begin_year'] = begin_month // 12
         begin_month %= 12
         df.loc[:, 'begin_month'] = begin_month
+
         year_threshold = [0, 1, 2, 3, 4, 5]
         for i in range(len(year_threshold)):
             df.loc[df['begin_year'] >= year_threshold[i], 'begin_year_range'] = i
@@ -370,20 +422,101 @@ class PreprocesserGBoost():
             d.append(one)
         X = np.concatenate([X, np.asarray(d)], axis=1)
 
-        # Annual_income -> Annual_income_range
-        incoume_threshold = [0, 25000, 50000, 80000, 120000, 200000, 280000, 360000, 420000, 500000, 620000, 750000, 1000000]
-        for i in range(len(incoume_threshold)):
-            df.loc[df['Annual_income'] >= incoume_threshold[i], 'Annual_income_range'] = i
-        df.drop(['Annual_income'], inplace=True, axis=1)
-        d = []
-        for i in df['Annual_income_range'].values:
-            one = [0 for _ in range(len(incoume_threshold))]
-            one[int(i)] = 1
-            d.append(one)
-        X = np.concatenate([X, np.asarray(d)], axis=1)
 
+        # Annual_income -> Annual_income_range
+        # incoume_threshold = list(range(0, 1000001, 15000))
+        # for i in range(len(incoume_threshold)):
+        #     df.loc[df['Annual_income'] >= incoume_threshold[i], 'Annual_income_range'] = i
+        # d = []
+        # for i in df['Annual_income_range'].values:
+        #     one = [0 for _ in range(len(incoume_threshold))]
+        #     one[int(i)] = 1
+        #     d.append(one)
+        # X = np.concatenate([X, np.asarray(d)], axis=1)
+
+        numeric_column = ['Annual_income', 'begin_year', 'begin_month', 'working_year', 'working_month', 'working_week',
+            'Age', 'not_working_year', 'not_working_month', 'not_working_week']
+        df[['Annual_income']] = gauss_nomalizer(type, df[['Annual_income']])
+        X = np.concatenate([X, df[['Annual_income']].values], axis=1)
         # X = np.concatenate([X, df[['Age_range', 'working_year_range', 'working_month', 'working_day',
         #                            'begin_year_range', 'begin_month', 'Annual_income_range']].values], axis=1)
+        print(X.shape)
+        print(X)
+        return X
+
+    def data_preprocess_2_label(self, df:pd.DataFrame, typed):
+        # 쓸데없는 데이터 제거
+        df = df.drop(['index', 'FLAG_MOBIL'], axis=1)
+        numeric_column = ['Annual_income', 'DAYS_BIRTH', 'working_day', 'begin_month']
+        categorical_column = ['gender', 'income_type', 'Education', 'family_type', 'house_type',
+                              'work_phone', 'phone', 'email', 'occyp_type', 'car_reality']
+        df = df.fillna('none')
+
+        X = np.zeros((df.shape[0], 1))
+        # LabelEncoding, OneHotEncoding
+        for column in categorical_column:
+            encoder = label_all_data[column]
+            if column not in  ['work_phone', 'phone', 'email', 'car_reality']:
+                encoding = []
+                for d in df[column].values:
+                    encoding.append(encoder.index(d))
+                df.loc[:,column] = np.asarray(encoding)
+            X = np.concatenate([X, df.loc[:,column].values.reshape(-1,1)], axis=1)
+        X = X[:, 1:]
+
+        df.loc[:,'not_working_day'] = np.abs(df['DAYS_BIRTH'].values) - np.abs(df['working_day'].values)
+        not_working_day = df['not_working_day'].values
+        print(not_working_day)
+        df.loc[:, 'not_working_year'] = not_working_day // 365
+        not_working_day %= 365
+        df.loc[:, 'not_working_month'] = not_working_day // 30
+        not_working_day %= 30
+        df.loc[:, 'not_working_week'] = not_working_day // 7
+        year_threshold = [0, 2, 5, 8, 11, 15, 20]
+        for i in range(len(year_threshold)):
+            df.loc[df['not_working_year'] >= year_threshold[i], 'not_working_year_range'] = i
+        X = np.concatenate([X, df.loc[:, ['not_working_year', 'not_working_month', 'not_working_week']].values.reshape(-1,3)], axis=1)
+
+        # birth -> age
+        birth = np.abs(df['DAYS_BIRTH'].values)
+        df.loc[:, 'Age'] = birth // 365
+        age_threshold = [0, 20, 30, 40, 50, 60]
+        for i in range(len(age_threshold)):
+            df.loc[df['Age'] >= age_threshold[i], 'Age_range'] = i
+        d = []
+        X = np.concatenate([X, df.loc[:, 'Age_range'].values.reshape(-1,1)], axis=1)
+
+        # working_day -> year, month, day
+        working_day = np.abs(df['working_day'].values)
+        df.loc[:, 'working_year'] = working_day // 365
+        working_day %= 365
+        df.loc[:, 'working_month'] = working_day // 30
+        working_day %= 30
+        df.loc[:, 'working_week'] = working_day // 7
+        year_threshold = [0, 2, 5, 8, 11, 15, 20]
+        for i in range(len(year_threshold)):
+            df.loc[df['working_year'] >= year_threshold[i], 'working_year_range'] = i
+        X = np.concatenate([X, df.loc[:, ['working_year_range', 'working_month', 'working_week']].values.reshape(-1,3)], axis=1)
+
+        # begin_month -> year, month:
+        begin_month = np.abs(df['begin_month'].values)
+        # df['begin_month'] = begin_month
+        # df[['begin_month']] = z_score_nomalizer(type, df[['begin_month']])
+        df.loc[:, 'begin_year'] = begin_month // 12
+        begin_month %= 12
+        df.loc[:, 'begin_month'] = begin_month
+        year_threshold = [0, 1, 2, 3, 4, 5]
+        for i in range(len(year_threshold)):
+            df.loc[df['begin_year'] >= year_threshold[i], 'begin_year_range'] = i
+        X = np.concatenate([X, df.loc[:, ['begin_year_range', 'begin_month']].values.reshape(-1,2)], axis=1)
+
+        # Annual_income -> Annual_income_range
+        incoume_threshold = list(range(0, 1000001, 15000))
+        for i in range(len(incoume_threshold)):
+            df.loc[df['Annual_income'] >= incoume_threshold[i], 'Annual_income_range'] = i
+        df[['Annual_income']] = z_score_nomalizer(typed, df[['Annual_income']])
+        X = np.concatenate([X, df.loc[:, 'Annual_income'].values.reshape(-1,1)], axis=1)
+
         print(X.shape)
         print(X)
         return X
