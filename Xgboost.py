@@ -4,7 +4,7 @@ import numpy as np
 import DataIO
 import Preprocessing
 from sklearn.model_selection import train_test_split
-from catboost import CatBoostClassifier
+from catboost import CatBoostClassifier, Pool
 from tensorflow.keras.utils import to_categorical
 from sklearn.metrics import log_loss
 import pandas as pd
@@ -17,7 +17,9 @@ import seaborn as sns
 
 from tensorflow.keras.models import Model, load_model
 from tensorflow.keras.layers import Dense, Input
+from sklearn.metrics import confusion_matrix
 import Model as md
+from bayes_opt.bayesian_optimization import BayesianOptimization
 
 def auto_encoder():
     dataio = DataIO.DataReadWrite()
@@ -51,6 +53,45 @@ def auto_encoder():
     autoencoder.compile(optimizer='adam', loss='binary_crossentropy', metrics=['binary_crossentropy'])
     autoencoder.fit(X_train, X_train, batch_size=128, epochs=100, validation_data=(X_test, X_test), callbacks=[md.AutoSaveCallback()])
 
+def param_tuning(X, y):
+    # | iter | target | baggin... | depth | l2_lea... | learni... |
+    # | 8 | 0.28 | 0.6148 | 10.42 | 83.9 | 0.06243 |
+    def catboost_eval(bagging_temperature, depth, learning_rate, l2_leaf_reg):
+        n_splits = 13
+        skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=354)
+
+        outcomes = []
+        count = 0
+        for n_fold, (train_index, val_index) in enumerate(skf.split(X, y)):
+            X_train, X_val = X.iloc[train_index,:], X.iloc[val_index,:]
+            y_train, y_val = y[train_index], y[val_index]
+
+            clf = CatBoostClassifier(iterations=50000, random_seed=1234, learning_rate=learning_rate,
+                                     depth=round(depth), bagging_temperature=bagging_temperature,
+                                     l2_leaf_reg=l2_leaf_reg, task_type="GPU", use_best_model=True, logging_level='Silent', )
+            clf.fit(X_train, y_train, eval_set=(X_val, y_val))
+
+            predictions = clf.predict_proba(X_val)
+
+            logloss = log_loss(to_categorical(y_val), predictions)
+            outcomes.append(logloss)
+            print(f"{count}번째 Logloss: {logloss}")
+            count += 1
+        mean_outcome = np.mean(outcomes)
+        print("Mean:{}".format(mean_outcome))
+        return 1 - mean_outcome
+
+    catBO = BayesianOptimization(catboost_eval,
+                                 {'bagging_temperature': (0.0, 1.0),
+                                  'depth': (1, 12),
+                                  "learning_rate": (0.001, 1.0),
+                                  'l2_leaf_reg': (2, 100),
+                                  }, random_state=0)
+    init_round = 5
+    opt_round = 15
+    catBO.maximize(init_points=init_round, n_iter=opt_round)
+    print(catBO.max)
+
 def only_catbooost():
     dataio = DataIO.DataReadWrite()
     preprocesser = Preprocessing.PreprocesserGBoost()
@@ -62,13 +103,13 @@ def only_catbooost():
 
     # 클래스 분리
     y = df.iloc[:, -1]
-    df = df.drop(['credit'], axis=1)
+    # df = df.drop(['credit'], axis=1)
 
     # 데이터 전처리
-    X = preprocesser.data_preprocess_2(df, 'train')
-    X_submmit = preprocesser.data_preprocess_2(df_test, 'test')
+    X, numerical_columns, categorical_columns = preprocesser.data_preprocess_2_comb(df.drop_duplicates(), 'train')
+    X_submmit, numerical_submmit, categorical_submmit = preprocesser.data_preprocess_2_comb(df_test, 'test')
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, test_size=0.2, random_state=2424)
+    # X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, test_size=0.2, random_state=2424)
 
     # encoder:Model = load_model('./data/models/autoencoder/0_0_1656978577375412.h5')
     # encoder = Model(inputs=encoder.input, outputs=encoder.layers[2].output)
@@ -77,8 +118,42 @@ def only_catbooost():
     # X_test = encoder.predict(X_test)
     # print(X_train)
 
-    model = CatBoostClassifier(iterations=1200, task_type="GPU", devices='0:1')
-    model.fit(X_train, y_train, eval_set=(X_test, y_test))
+    folds = StratifiedKFold(n_splits=13, shuffle=True, random_state=354)
+    outcomes = []
+    sub = np.zeros((X_submmit.shape[0], 3))
+    for n_fold, (train_index, val_index) in enumerate(folds.split(X, y)):
+        X_train, X_val = X.iloc[train_index,:], X.iloc[val_index,:]
+        y_train, y_val = y[train_index], y[val_index]
+
+        # train_pool = Pool(X_train, y_train, cat_features=categorical_columns)
+        # test_pool = Pool(X_val, y_val, cat_features=categorical_columns)
+
+        clf = CatBoostClassifier(iterations=10000, task_type="GPU", learning_rate=0.05)
+        clf.fit(X_train, y_train, eval_set=(X_val, y_val))
+
+        predictions = clf.predict_proba(X_val)
+
+        logloss = log_loss(to_categorical(y_val), predictions)
+        outcomes.append(logloss)
+        print(f"FOLD {n_fold} : logloss:{logloss}")
+
+        d = pd.DataFrame({"importance": clf.get_feature_importance(),
+                          "label": X.columns.tolist()})
+        sns.barplot(data=d, y='label', x='importance')
+        plt.show()
+
+        sub += clf.predict_proba(X_submmit)
+
+    mean_outcome = np.mean(outcomes)
+    my_submission  = sub / folds.n_splits
+    print("Mean:{}".format(mean_outcome))
+
+    submission = pd.read_csv('./data/sample_submission.csv')
+    submission.loc[:, 1:] = my_submission
+    submission.to_csv(f'./data/submission/{mean_outcome}_xgboost.csv', index=False)
+
+    # model = CatBoostClassifier(iterations=5000, task_type="GPU", devices='0:1')
+    # model.fit(X_train, y_train, eval_set=(X_test, y_test))
     # d = pd.DataFrame({"importance": model.get_feature_importance(),
     #                   "label": ['gender', 'income_type', 'Education', 'family_type', 'house_type',
     #                             'work_phone', 'phone', 'email', 'occyp_type', 'car_reality',
@@ -86,15 +161,15 @@ def only_catbooost():
     #                             'working_year_range', 'working_month', 'working_week', 'begin_year_range', 'begin_month',
     #                             'Annual_income']})
     # sns.barplot(data=d, y='label', x='importance')
-    plt.show()
-    y_pred = model.predict_proba(X_test)
-    loss = log_loss(to_categorical(y_test), y_pred)
-    print(f"CatBoostClassifier log_loss: {loss}")
-
-    pred_sub = model.predict_proba(X_submmit)
-    submission = pd.read_csv('./data/sample_submission.csv')
-    submission.loc[:, 1:] = pred_sub
-    submission.to_csv(f'./data/submission/{loss}_xgboost.csv', index=False)
+    # plt.show()
+    # y_pred = model.predict_proba(X_test)
+    # loss = log_loss(to_categorical(y_test), y_pred)
+    # print(f"CatBoostClassifier log_loss: {loss}")
+    #
+    # pred_sub = model.predict_proba(X_submmit)
+    # submission = pd.read_csv('./data/sample_submission.csv')
+    # submission.loc[:, 1:] = pred_sub
+    # submission.to_csv(f'./data/submission/{loss}_xgboost.csv', index=False)
 
 def stakcing():
     def get_stacked(model, X_train, y_train, X_test, n_folds):
