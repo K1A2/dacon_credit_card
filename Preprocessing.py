@@ -572,11 +572,20 @@ class PreprocesserGBoost():
             #         pickle.dump(mean_encode, f)
             # df[column] = df[column].map(mean_encode)
 
-        df[numeric_column] = z_score_nomalizer(typed, df[numeric_column])
+        df[numeric_column] = gauss_nomalizer(typed, df[numeric_column])
         df = df.drop(['DAYS_BIRTH', 'working_day', 'begin_month', 'not_working_day', 'Annual_income'], axis=1)
+
+        # if typed == 'train':
+        #     df = df.drop(df[(df['all_income'] < df['all_income'].quantile(0.25) - 1.5 * (
+        #                 df['all_income'].quantile(0.75) - df['all_income'].quantile(0.25)))].index, axis=0)
+        #     print(df)
+
+        # for c in numeric_column:
+        #     sns.histplot(x=df[c])
+        #     plt.show()
 
         if typed == 'train':
             df = df.drop(['credit'], axis=1)
         print(df.iloc[0,:])
-
+        print(df.shape)
         return df, numeric_column, categorical_column

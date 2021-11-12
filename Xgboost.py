@@ -1,3 +1,4 @@
+import catboost.utils
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -20,6 +21,7 @@ from tensorflow.keras.layers import Dense, Input
 from sklearn.metrics import confusion_matrix
 import Model as md
 from bayes_opt.bayesian_optimization import BayesianOptimization
+import optuna
 
 def auto_encoder():
     dataio = DataIO.DataReadWrite()
@@ -60,15 +62,20 @@ def param_tuning(X, y):
         n_splits = 13
         skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=354)
 
+        params = {}
+        params['boosting_type'] ='Bayesian'
+        params['bagging_temperature'] = bagging_temperature
+        params['depth'] = round(depth)
+        params['learning_rate'] = learning_rate
+        params['l2_leaf_reg'] = l2_leaf_reg
+
         outcomes = []
         count = 0
         for n_fold, (train_index, val_index) in enumerate(skf.split(X, y)):
             X_train, X_val = X.iloc[train_index,:], X.iloc[val_index,:]
             y_train, y_val = y[train_index], y[val_index]
 
-            clf = CatBoostClassifier(iterations=50000, random_seed=1234, learning_rate=learning_rate,
-                                     depth=round(depth), bagging_temperature=bagging_temperature,
-                                     l2_leaf_reg=l2_leaf_reg, task_type="GPU", use_best_model=True, logging_level='Silent', )
+            clf = CatBoostClassifier(**params, iterations=50000, random_seed=1234, task_type="GPU", use_best_model=True, logging_level='Silent', )
             clf.fit(X_train, y_train, eval_set=(X_val, y_val))
 
             predictions = clf.predict_proba(X_val)
@@ -92,6 +99,120 @@ def param_tuning(X, y):
     catBO.maximize(init_points=init_round, n_iter=opt_round)
     print(catBO.max)
 
+def train_catboost(X, y, X_submmit):
+    folds = StratifiedKFold(n_splits=13, shuffle=True, random_state=354)
+    outcomes = []
+    sub = np.zeros((X_submmit.shape[0], 3))
+    for n_fold, (train_index, val_index) in enumerate(folds.split(X, y)):
+        X_train, X_val = X.iloc[train_index, :], X.iloc[val_index, :]
+        y_train, y_val = y.iloc[train_index, :], y.iloc[val_index, :]
+
+        # train_pool = Pool(X_train, y_train, cat_features=categorical_columns)
+        # test_pool = Pool(X_val, y_val, cat_features=categorical_columns)
+
+        clf = CatBoostClassifier(iterations=10000, task_type="GPU", learning_rate=0.05, random_seed=1234)
+        clf.fit(X_train, y_train, eval_set=(X_val, y_val))
+
+        predictions = clf.predict_proba(X_val)
+
+        logloss = log_loss(to_categorical(y_val), predictions)
+        outcomes.append(logloss)
+        print(f"FOLD {n_fold} : logloss:{logloss}")
+
+        # d = pd.DataFrame({"importance": clf.get_feature_importance(),
+        #                   "label": X.columns.tolist()})
+        # sns.barplot(data=d, y='label', x='importance')
+        # plt.show()
+
+        sub += clf.predict_proba(X_submmit)
+
+    mean_outcome = np.mean(outcomes)
+    my_submission = sub / folds.n_splits
+    print("Mean:{}".format(mean_outcome))
+
+    submission = pd.read_csv('./data/sample_submission.csv')
+    submission.loc[:, 1:] = my_submission
+    submission.to_csv(f'./data/submission/{mean_outcome}_xgboost.csv', index=False)
+
+'''
+{
+objective: MultiClass
+depth: 15
+learning_rate: 0.37301919266189065
+grow_policy: Lossguide
+bootstrap_type: Bernoulli
+l2_leaf_reg: 15
+task_type: CPU
+random_seed: 1234
+thread_count: 24
+subsample: 0.6152218242287273
+max_leaves: 26
+iterations: 40000
+}
+'''
+def param_tuning_optuna(X, y):
+    def objective(trial):
+        try:
+            train_x, valid_x, train_y, valid_y = train_test_split(X, y, test_size=0.2, stratify=y, random_state=678988)
+            param = {
+                "objective": "MultiClass",
+                "depth": trial.suggest_int("depth", 5, 16),
+                "learning_rate": trial.suggest_float("learning_rate", 0.01, 1),
+                "grow_policy": trial.suggest_categorical(
+                    "grow_policy", ['SymmetricTree', 'Lossguide']
+                ),
+                "bootstrap_type": trial.suggest_categorical(
+                    "bootstrap_type", ["Bayesian", "Bernoulli"]
+                ),
+                "l2_leaf_reg": trial.suggest_int("l2_leaf_reg", 1, 50),
+                "task_type": "CPU",
+                "random_seed": 1234,
+                "thread_count": 12
+            }
+
+            if param["bootstrap_type"] == "Bayesian":
+                param["bagging_temperature"] = trial.suggest_float("bagging_temperature", 0, 10)
+            elif param["bootstrap_type"] == "Bernoulli":
+                param["subsample"] = trial.suggest_float("subsample", 0.1, 1)
+
+            if param['grow_policy'] != "Lossguide":
+                param['boosting_type'] = 'Plain'
+
+            if param['grow_policy'] == "Lossguide":
+                param['max_leaves'] = trial.suggest_int('max_leaves', 16, 64)
+            param['iterations'] = 40000
+
+            print(f"{trial.number}번\n" + "{")
+            for k, v in param.items():
+                print(f"{k}: {v}")
+            print("}")
+
+            clf = CatBoostClassifier(**param)
+            clf.fit(train_x, train_y, eval_set=[(valid_x, valid_y)], early_stopping_rounds=1000, verbose=0)
+
+            predictions = clf.predict_proba(valid_x)
+            logloss = log_loss(to_categorical(valid_y), predictions)
+
+            print(f"{trial.number}번 logloss: {logloss}")
+
+            return logloss
+        except:
+            return 100
+
+    study = optuna.create_study(direction='minimize')
+    study.optimize(objective, n_trials=100)
+
+    print("Number of finished trials: {}".format(len(study.trials)))
+    print("Best trial:")
+    trial = study.best_trial
+    print("  Value: {}".format(trial.value))
+    print("  Params: ")
+    for key, value in trial.params.items():
+        print("    {}: {}".format(key, value))
+
+    optuna.visualization.plot_param_importances(study)
+    optuna.visualization.plot_optimization_history(study)
+
 def only_catbooost():
     dataio = DataIO.DataReadWrite()
     preprocesser = Preprocessing.PreprocesserGBoost()
@@ -102,12 +223,21 @@ def only_catbooost():
     # df = df.drop_duplicates(df.columns)
 
     # 클래스 분리
-    y = df.iloc[:, -1]
+    y = df.loc[:, ['credit']]
     # df = df.drop(['credit'], axis=1)
 
     # 데이터 전처리
     X, numerical_columns, categorical_columns = preprocesser.data_preprocess_2_comb(df.drop_duplicates(), 'train')
     X_submmit, numerical_submmit, categorical_submmit = preprocesser.data_preprocess_2_comb(df_test, 'test')
+
+    y = y.loc[X.index,:]
+    X = X.reset_index()
+    X = X.drop(['index'], axis=1)
+    y = y.reset_index()
+    y = y.drop(['index'], axis=1)
+
+    # train_catboost(X, y, X_submmit)
+    param_tuning_optuna(X, y)
 
     # X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, test_size=0.2, random_state=2424)
 
@@ -118,39 +248,7 @@ def only_catbooost():
     # X_test = encoder.predict(X_test)
     # print(X_train)
 
-    folds = StratifiedKFold(n_splits=13, shuffle=True, random_state=354)
-    outcomes = []
-    sub = np.zeros((X_submmit.shape[0], 3))
-    for n_fold, (train_index, val_index) in enumerate(folds.split(X, y)):
-        X_train, X_val = X.iloc[train_index,:], X.iloc[val_index,:]
-        y_train, y_val = y[train_index], y[val_index]
 
-        # train_pool = Pool(X_train, y_train, cat_features=categorical_columns)
-        # test_pool = Pool(X_val, y_val, cat_features=categorical_columns)
-
-        clf = CatBoostClassifier(iterations=10000, task_type="GPU", learning_rate=0.05)
-        clf.fit(X_train, y_train, eval_set=(X_val, y_val))
-
-        predictions = clf.predict_proba(X_val)
-
-        logloss = log_loss(to_categorical(y_val), predictions)
-        outcomes.append(logloss)
-        print(f"FOLD {n_fold} : logloss:{logloss}")
-
-        d = pd.DataFrame({"importance": clf.get_feature_importance(),
-                          "label": X.columns.tolist()})
-        sns.barplot(data=d, y='label', x='importance')
-        plt.show()
-
-        sub += clf.predict_proba(X_submmit)
-
-    mean_outcome = np.mean(outcomes)
-    my_submission  = sub / folds.n_splits
-    print("Mean:{}".format(mean_outcome))
-
-    submission = pd.read_csv('./data/sample_submission.csv')
-    submission.loc[:, 1:] = my_submission
-    submission.to_csv(f'./data/submission/{mean_outcome}_xgboost.csv', index=False)
 
     # model = CatBoostClassifier(iterations=5000, task_type="GPU", devices='0:1')
     # model.fit(X_train, y_train, eval_set=(X_test, y_test))
