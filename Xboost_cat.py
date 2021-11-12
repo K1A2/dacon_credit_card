@@ -91,6 +91,8 @@ def main():
     #     'max_leaves': 62,
     #     'iterations': 40000,
     # }
+
+    # param 2
     # two_0.7027083784935696_xgboost.csv
     param = {
         'objective': 'MultiClass',
