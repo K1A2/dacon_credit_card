@@ -7,6 +7,9 @@ from tensorflow.keras.utils import to_categorical
 from sklearn.metrics import log_loss
 from sklearn.model_selection import StratifiedKFold, train_test_split
 
+def train_stacking(X, y, X_submmit, params, n_split):
+    pass
+
 def train_catboost(X, y, X_submmit, params, n_splits):
     folds = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=756353)
     outcomes = []
@@ -71,6 +74,16 @@ def main():
     X = X.drop(['index'], axis=1)
     y = y.reset_index()
     y = y.drop(['index'], axis=1)
+
+
+
+    # param = {
+    #     'task_type': 'CPU',
+    #     'random_seed': 1234,
+    #     'thread_count': 12,
+    #     'iterations': 40000,
+    # }
+
 
     # 1번
     # one_0.7056862464826119_xgboost.csv

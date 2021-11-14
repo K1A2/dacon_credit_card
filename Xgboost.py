@@ -20,7 +20,6 @@ from tensorflow.keras.models import Model, load_model
 from tensorflow.keras.layers import Dense, Input
 from sklearn.metrics import confusion_matrix
 import Model as md
-from bayes_opt.bayesian_optimization import BayesianOptimization
 import optuna
 
 def auto_encoder():
@@ -103,7 +102,7 @@ max_leaves: 26
 iterations: 40000
 }
 '''
-def param_tuning_optuna(X, y):
+def param_tuning_optuna(X, y, categorical_columns):
     def objective(trial):
         try:
             train_x, valid_x, train_y, valid_y = train_test_split(X, y, test_size=0.2, stratify=y, random_state=678988)
@@ -140,8 +139,11 @@ def param_tuning_optuna(X, y):
                 print(f"{k}: {v}")
             print("}")
 
+            train_data = Pool(train_x, train_y, cat_features=categorical_columns)
+            vaild_data = Pool(valid_x, valid_y, cat_features=categorical_columns)
+
             clf = CatBoostClassifier(**param)
-            clf.fit(train_x, train_y, eval_set=[(valid_x, valid_y)], early_stopping_rounds=1000, verbose=0)
+            clf.fit(train_data, eval_set=vaild_data, early_stopping_rounds=1000, verbose=500)
 
             predictions = clf.predict_proba(valid_x)
             logloss = log_loss(to_categorical(valid_y), predictions)
@@ -189,9 +191,10 @@ def only_catbooost():
     y = y.reset_index()
     y = y.drop(['index'], axis=1)
 
-    for i in range(10, 26):
-        train_catboost(X, y, X_submmit, i)
-    # param_tuning_optuna(X, y)
+    # for i in range(10, 26):
+    #     train_catboost(X, y, X_submmit, i)
+    print(categorical_columns)
+    param_tuning_optuna(X, y, categorical_columns)
 
     # X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, test_size=0.2, random_state=2424)
 

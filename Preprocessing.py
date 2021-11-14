@@ -382,34 +382,44 @@ class PreprocesserGBoost():
         df['make_card_birth_m'] = df['make_card_birth'] % 12
 
         numeric_column = ['age_y', 'age_m', 'age_w', 'working_y', 'working_m', 'working_w', 'not_working_y',
-                          'not_working_m', 'not_working_w', 'begin_y', 'begin_m', 'all_income',
-                          'make_card_working', 'make_card_working_y', 'make_card_working_m',
-                          'make_card_birth', 'make_card_birth_y', 'make_card_birth_m'] + numeric_column
+                          'not_working_m', 'not_working_w', 'begin_y', 'begin_m', 'all_income'] + numeric_column
         categorical_column = ['money_relation', 'gneder_occuyp', 'family_house', 'relation_giefho',
-                              'phone_mail', 'occuyp_car', 'age_income', 'age_income_occu', 'income_age_car'] + categorical_column
+                              'phone_mail', 'occuyp_car'] + categorical_column
 
-        income = [0, 50000, 100000, 150000, 200000, 250000, 300000, 400000, 600000, 800000]
-        m = 0
-        for i in income:
-            df.loc[df['Annual_income'] >= i, 'income_cat'] = m
-            m += 1
-        age = [0, 20, 30, 40, 50, 60]
-        m = 0
-        for i in age:
-            df.loc[df['age_y'] >= i, 'age_cat'] = m
-            m += 1
 
-        relation_age_income = list(product(*[np.arange(0.0, len(income)).tolist(), np.arange(0.0, len(age)).tolist()]))
-        label_all_data['age_income'] = [' '.join([str(j) for j in i]) for i in relation_age_income]
-        df.loc[:, 'age_income'] = df['income_cat'].astype(str) + ' ' + df['age_cat'].astype(str)
-        relation_age_income_ocu = list(product(*[np.arange(0.0, len(income)).tolist(), np.arange(0.0, len(age)).tolist(),
-                                                 label_all_data['occyp_type']]))
-        label_all_data['age_income_occu'] = [' '.join([str(j) for j in i]) for i in relation_age_income_ocu]
-        df.loc[:, 'age_income_occu'] = df['income_cat'].astype(str) + ' ' + df['age_cat'].astype(str) + ' ' + df['occyp_type']
-        relation_income_car = list(product(*[np.arange(0.0, len(income)).tolist(), np.arange(0.0, len(age)).tolist(),
-                                             label_all_data['car_reality']]))
-        label_all_data['income_age_car'] = [' '.join([str(j) for j in i]) for i in relation_income_car]
-        df.loc[:, 'income_age_car'] = df['income_cat'].astype(str) + ' ' + df['age_cat'].astype(str) + ' ' + df['car_reality'].astype(str)
+
+        # income = [0, 50000, 100000, 150000, 200000, 250000, 300000, 400000, 600000, 800000]
+        # m = 0
+        # for i in income:
+        #     df.loc[df['Annual_income'] >= i, 'income_cat'] = m
+        #     m += 1
+        # age = [0, 20, 30, 40, 50, 60]
+        # m = 0
+        # for i in age:
+        #     df.loc[df['age_y'] >= i, 'age_cat'] = m
+        #     m += 1
+        # relation_age_income = list(product(*[np.arange(0.0, len(income)).tolist(), np.arange(0.0, len(age)).tolist()]))
+        # label_all_data['age_income'] = [' '.join([str(j) for j in i]) for i in relation_age_income]
+        # df.loc[:, 'age_income'] = df['income_cat'].astype(str) + ' ' + df['age_cat'].astype(str)
+        # relation_age_income_ocu = list(product(*[np.arange(0.0, len(income)).tolist(), np.arange(0.0, len(age)).tolist(),
+        #                                          label_all_data['occyp_type']]))
+        # label_all_data['age_income_occu'] = [' '.join([str(j) for j in i]) for i in relation_age_income_ocu]
+        # df.loc[:, 'age_income_occu'] = df['income_cat'].astype(str) + ' ' + df['age_cat'].astype(str) + ' ' + df['occyp_type']
+        # relation_income_car = list(product(*[np.arange(0.0, len(income)).tolist(), np.arange(0.0, len(age)).tolist(),
+        #                                      label_all_data['car_reality']]))
+        # label_all_data['income_age_car'] = [' '.join([str(j) for j in i]) for i in relation_income_car]
+        # df.loc[:, 'income_age_car'] = df['income_cat'].astype(str) + ' ' + df['age_cat'].astype(str) + ' ' + df['car_reality'].astype(str)
+        # numeric_column += ['make_card_working', 'make_card_working_y', 'make_card_working_m',
+        #                   'make_card_birth', 'make_card_birth_y', 'make_card_birth_m']
+        # categorical_column += ['age_income', 'age_income_occu', 'income_age_car']
+
+
+
+        df = df.drop(['gender', 'work_phone', 'phone', 'email', 'car_reality'], axis=1)
+        for i in ['gender', 'work_phone', 'phone', 'email', 'car_reality']:
+            categorical_column.remove(i)
+
+
 
         for column in categorical_column:
             e = LabelEncoder()
@@ -431,7 +441,7 @@ class PreprocesserGBoost():
             #         pickle.dump(mean_encode, f)
             # df[column] = df[column].map(mean_encode)
 
-        categorical_column += ['income_cat', 'age_cat']
+        # categorical_column += ['income_cat', 'age_cat']
 
         df[numeric_column] = gauss_nomalizer(typed, df[numeric_column])
         # df = df.drop(['DAYS_BIRTH', 'working_day', 'begin_month', 'not_working_day', 'Annual_income'], axis=1)
@@ -444,6 +454,9 @@ class PreprocesserGBoost():
         # for c in numeric_column:
         #     sns.histplot(x=df[c])
         #     plt.show()
+
+        for i in categorical_column:
+            df[i] = df[i].astype(int)
 
         if typed == 'train':
             df = df.drop(['credit'], axis=1)
