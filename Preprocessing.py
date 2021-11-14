@@ -8,18 +8,20 @@ from imblearn.under_sampling import TomekLinks
 from imblearn.over_sampling import SMOTENC
 from sklearn.model_selection import train_test_split
 
-# gender random_under {'F', 'M'}
-# income_type 5 {'Commercial associate', 'Student', 'State servant', 'Pensioner', 'Working'}
-# Education 5 {'Lower secondary', 'Academic degree', 'Higher education', 'Incomplete higher', 'Secondary / secondary special'}
-# family_type 5 {'Married', 'Separated', 'Single / not married', 'Widow', 'Civil marriage'}
-# house_type 6 {'Office apartment', 'With parents', 'House / apartment', 'Rented apartment', 'Municipal apartment', 'Co-op apartment'}
-# FLAG_MOBIL none {none}
-# work_phone random_under {0, none}
-# phone random_under {0, none}
-# email random_under {0, none}
-# occyp_type 19 {'Security staff', 'Laborers', 'HR staff', 'Cleaning staff', 'Waiters/barmen staff', 'Medicine staff', 'Managers', 'Accountants', 'IT staff', 'Realty agents', 'Low-skill Laborers', 'Private service staff', 'none', 'Core staff', 'Drivers', 'Secretaries', 'Sales staff', 'Cooking staff', 'High skill tech staff'}
-# car_reality under_tome {0, none, random_under}
-# credit under_tome {0.0, none.0, random_under.0}
+'''
+gender random_under {'F', 'M'}
+income_type 5 {'Commercial associate', 'Student', 'State servant', 'Pensioner', 'Working'}
+Education 5 {'Lower secondary', 'Academic degree', 'Higher education', 'Incomplete higher', 'Secondary / secondary special'}
+family_type 5 {'Married', 'Separated', 'Single / not married', 'Widow', 'Civil marriage'}
+house_type 6 {'Office apartment', 'With parents', 'House / apartment', 'Rented apartment', 'Municipal apartment', 'Co-op apartment'}
+FLAG_MOBIL none {none}
+work_phone random_under {0, none}
+phone random_under {0, none}
+email random_under {0, none}
+occyp_type 19 {'Security staff', 'Laborers', 'HR staff', 'Cleaning staff', 'Waiters/barmen staff', 'Medicine staff', 'Managers', 'Accountants', 'IT staff', 'Realty agents', 'Low-skill Laborers', 'Private service staff', 'none', 'Core staff', 'Drivers', 'Secretaries', 'Sales staff', 'Cooking staff', 'High skill tech staff'}
+car_reality under_tome {0, none, random_under}
+credit under_tome {0.0, none.0, random_under.0}
+'''
 
 default_path = './data/'
 label_all_data = {'gender': ['F', 'M'],
@@ -115,185 +117,6 @@ class Preprocess():
         # plt.show()
         print('make plot finish')
 
-    def train_data_preprocess(self, df:pd.DataFrame):
-        drop_df = df.drop(['index', 'FLAG_MOBIL'], axis=1)
-        numeric_column = ['Annual_income', 'DAYS_BIRTH', 'working_day', 'begin_month']
-        categorical_column = ['gender', 'income_type', 'Education', 'family_type', 'house_type',
-                                 'work_phone', 'phone', 'email', 'occyp_type', 'car_reality', 'credit']
-        drop_df[numeric_column] = z_score_nomalizer('train', drop_df[numeric_column])
-
-        X = drop_df[numeric_column].values
-
-        for column in categorical_column:
-            if column not in ['work_phone', 'phone', 'email', 'car_reality', 'credit']:
-                encoder = LabelEncoder()
-                encoder.fit(drop_df[column].values)
-                drop_df[column] = pd.DataFrame(encoder.transform(drop_df[column].values).reshape(-1, 1), columns=[column])
-            one_hot_encoder = OneHotEncoder()
-            one_hot_encoder.fit(drop_df[column].values.reshape(-1, 1))
-            label = one_hot_encoder.transform(drop_df[column].values.reshape(-1, 1)).toarray()
-            X = np.concatenate([X, label], axis=1)
-
-        Y = X[:, -3:X.shape[1]]
-        X = X[:, :-3]
-
-        resemple = TomekLinks()
-        X, Y = resemple.fit_resample(X, Y)
-
-        check = [0,0,0]
-        for i in Y.tolist():
-            check[i.index(1)] += 1
-        print(check)
-
-        print('train preprocessing complete')
-        return X, Y
-
-    def train_data_oversampling(self, df:pd.DataFrame):
-        drop_df = df.drop(['index', 'FLAG_MOBIL'], axis=1)
-        numeric_column = ['Annual_income', 'DAYS_BIRTH', 'working_day', 'begin_month']
-        categorical_column = ['gender', 'income_type', 'Education', 'family_type', 'house_type',
-                              'work_phone', 'phone', 'email', 'occyp_type', 'car_reality', 'credit']
-        drop_df = drop_df[numeric_column + categorical_column]
-
-        # 이상치 제거
-        q1 = drop_df[numeric_column].quantile(0.25)
-        q3 = drop_df[numeric_column].quantile(0.75)
-        iqr = q3 - q1
-        c = (drop_df[numeric_column] < (q1 - 1.5 * iqr)) | (drop_df[numeric_column] > (q3 + 1.5 * iqr))
-        c = c.any(axis=1)
-        drop_df = drop_df.drop(drop_df[c].index, axis=0)
-        drop_df.reset_index(inplace=True)
-        drop_df.drop(['index'], axis=1, inplace=True)
-
-        for column in categorical_column:
-            if column not in ['work_phone', 'phone', 'email', 'car_reality']:
-                encoder = LabelEncoder()
-                encoder.fit(drop_df[column].values)
-                drop_df[column] = pd.DataFrame(encoder.transform(drop_df[column].values).reshape(-1, 1), columns=[column])
-
-        # oversampling
-        feature = [True for _ in range(len(drop_df.columns) - 1)]
-        feature[0] = False
-        feature[1] = False
-        feature[2] = False
-        feature[3] = False
-        sample = SMOTENC(categorical_features=feature, k_neighbors=3)
-        df_X, df_Y = sample.fit_resample(drop_df.drop(['credit'], axis=1).values, drop_df[['credit']].values)
-        df_Y = np.reshape(df_Y, (-1, 1))
-        drop_df = pd.DataFrame(np.concatenate([df_X, df_Y], axis=1), columns=numeric_column + categorical_column)
-        drop_df[numeric_column] = z_score_nomalizer('train', drop_df[numeric_column])
-
-        X = drop_df[numeric_column].values
-
-        for column in categorical_column:
-            one_hot_encoder = OneHotEncoder()
-            one_hot_encoder.fit(drop_df[column].values.reshape((-1, 1)))
-            label_train = one_hot_encoder.transform(drop_df[column].values.reshape(-1, 1)).toarray()
-            X = np.concatenate([X, label_train], axis=1)
-
-        y = X[:, -3:X.shape[1]]
-        X = X[:, :-3]
-        print('train preprocessing complete - oversampling')
-        return X, y
-
-    def train_data_oversampling_split(self, df:pd.DataFrame):
-        drop_df = df.drop(['index', 'FLAG_MOBIL'], axis=1)
-        numeric_column = ['Annual_income', 'DAYS_BIRTH', 'working_day', 'begin_month']
-        categorical_column = ['gender', 'income_type', 'Education', 'family_type', 'house_type',
-                              'work_phone', 'phone', 'email', 'occyp_type', 'car_reality', 'credit']
-        drop_df = drop_df[numeric_column + categorical_column]
-
-        df_train, df_test = train_test_split(drop_df, test_size=0.33, random_state=4343)
-        print(df_train.shape, df_test.shape)
-
-        # 이상치 제거
-        q1 = df_train[numeric_column].quantile(0.25)
-        q3 = df_train[numeric_column].quantile(0.75)
-        iqr = q3 - q1
-        c = (df_train[numeric_column] < (q1 - 1.5 * iqr)) | (df_train[numeric_column] > (q3 + 1.5 * iqr))
-        c = c.any(axis=1)
-        df_train = df_train.drop(df_train[c].index, axis=0)
-        df_train.reset_index(inplace=True)
-        df_train.drop(['index'], axis=1, inplace=True)
-        df_test.reset_index(inplace=True)
-        df_test.drop(['index'], axis=1, inplace=True)
-
-        for column in categorical_column:
-            if column not in ['work_phone', 'phone', 'email', 'car_reality']:
-                encoder = LabelEncoder()
-                encoder.fit(label_all_data[column])
-                df_train[column] = pd.DataFrame(encoder.transform(df_train[column].values).reshape(-1, 1), columns=[column])
-                df_test[column] = pd.DataFrame(encoder.transform(df_test[column].values).reshape(-1, 1), columns=[column])
-
-        # oversampling
-        feature = [True for _ in range(len(df_train.columns) - 1)]
-        feature[0] = False
-        feature[1] = False
-        feature[2] = False
-        feature[3] = False
-        sample = SMOTENC(categorical_features=feature, k_neighbors=3)
-        df_X, df_Y = sample.fit_resample(df_train.drop(['credit'], axis=1).values, df_train[['credit']].values)
-        df_Y = np.reshape(df_Y, (-1, 1))
-        df_train = pd.DataFrame(np.concatenate([df_X, df_Y], axis=1), columns=numeric_column + categorical_column)
-        df_train[numeric_column] = z_score_nomalizer('train', df_train[numeric_column])
-        df_test[numeric_column] = z_score_nomalizer('test', df_test[numeric_column])
-
-        X_train = df_train[numeric_column].values
-        X_test = df_test[numeric_column].values
-
-        for column in categorical_column:
-            all_d = []
-            for i in [df_train[column].values, df_test[column].values]:
-                c_d = []
-                for d in i:
-                    one_hot = [0 for _ in range(len(self.__label_all_data[column]))]
-                    one_hot[int(d)] = 1
-                    c_d.append(one_hot)
-                all_d.append(c_d)
-            label_train = np.asarray(all_d[0])
-            X_train = np.concatenate([X_train, label_train], axis=1)
-            label_test = np.asarray(all_d[1])
-            X_test = np.concatenate([X_test, label_test], axis=1)
-
-            # one_hot_encoder = OneHotEncoder()
-            # one_hot_encoder.fit(np.asarray(range(len(self.__label_all_data[column]))).reshape((-1, 1)))
-            # label_train = one_hot_encoder.transform(df_train[column].values.reshape(-1, 1)).toarray()
-            # X_train = np.concatenate([X_train, label_train], axis=1)
-            # label_test = one_hot_encoder.transform(df_test[column].values.reshape(-1, 1)).toarray()
-            # X_test = np.concatenate([X_test, label_test], axis=1)
-
-        Y_train = X_train[:, -3:X_train.shape[1]]
-        X_train = X_train[:, :-3]
-        Y_test = X_test[:, -3:X_test.shape[1]]
-        X_test = X_test[:, :-3]
-        print('train preprocessing complete - oversampling')
-        print(X_train.shape, Y_train.shape, X_test.shape, Y_test.shape)
-        return X_train, X_test, Y_train, Y_test
-
-    def test_data_preprocess(self, df:pd.DataFrame):
-        drop_df = df.drop(['index', 'FLAG_MOBIL'], axis=1)
-        numeric_column = ['Annual_income', 'DAYS_BIRTH', 'working_day', 'begin_month']
-        categorical_column = ['gender', 'income_type', 'Education', 'family_type', 'house_type',
-                              'work_phone', 'phone', 'email', 'occyp_type', 'car_reality']
-        drop_df[numeric_column] = z_score_nomalizer('test', drop_df[numeric_column])
-
-        X = drop_df[numeric_column].values
-        print(X.shape)
-        for column in categorical_column:
-            if column not in ['work_phone', 'phone', 'email', 'car_reality']:
-                encoder = LabelEncoder()
-                encoder.fit(drop_df[column].values)
-                drop_df[column] = pd.DataFrame(encoder.transform(drop_df[column].values).reshape(-1, 1), columns=[column])
-            one_hot_encoder = OneHotEncoder()
-            one_hot_encoder.fit(drop_df[column].values.reshape(-1, 1))
-            label = one_hot_encoder.transform(drop_df[column].values.reshape(-1, 1)).toarray()
-            X = np.concatenate([X, label], axis=1)
-
-        print('test preprocessing complete')
-        return X
-
-
-#랭킹가우스
 from GaussRankScaler import GaussRankScaler
 class PreprocesserGBoost():
     def data_preprocess_2(self, df:pd.DataFrame, type):
@@ -506,6 +329,10 @@ class PreprocesserGBoost():
         df.loc[:, 'phone_mail'] = df['phone'].astype(str) + ' ' + df['work_phone'].astype(str) + ' ' + df['email'].astype(str)
         df.loc[:, 'occuyp_car'] = df['occyp_type'] + ' ' + df['car_reality'].astype(str)
 
+        df.loc[(df['family_type'] == 'Single / not married') | (df['family_type'] == 'Separated') |
+               (df['family_type'] == 'Widow'), 'family_type_same'] = 0
+        df.loc[(df['family_type'] == 'Married') | (df['family_type'] == 'Civil marriage'), 'family_type_same'] = 1
+
         # for relation in relation_income_edu_occu:
         #     df.loc[(df['income_type'] == relation[0]) &
         #            (df['Education'] == relation[1]) &
@@ -547,33 +374,67 @@ class PreprocesserGBoost():
         df['begin_m'] = df['begin_month'] % 12
         df['all_income'] = df['Annual_income'] * df['working_y'] + df['Annual_income'] / 12 * df['working_m'] +\
                            df['Annual_income'] / 12 / 4 * df['working_w']
+        df['make_card_working'] = df['working_day'] // 30 - df['begin_month']
+        df['make_card_working_y'] = df['make_card_working'] // 12
+        df['make_card_working_m'] = df['make_card_working'] % 12
+        df['make_card_birth'] = df['DAYS_BIRTH'] // 30 - df['begin_month']
+        df['make_card_birth_y'] = df['make_card_birth'] // 12
+        df['make_card_birth_m'] = df['make_card_birth'] % 12
 
         numeric_column = ['age_y', 'age_m', 'age_w', 'working_y', 'working_m', 'working_w', 'not_working_y',
-                          'not_working_m', 'not_working_w', 'begin_y', 'begin_m', 'all_income']
-        categorical_column = ['money_relation', 'gneder_occuyp', 'family_house', 'relation_giefho', 'phone_mail', 'occuyp_car'] + categorical_column
+                          'not_working_m', 'not_working_w', 'begin_y', 'begin_m', 'all_income',
+                          'make_card_working', 'make_card_working_y', 'make_card_working_m',
+                          'make_card_birth', 'make_card_birth_y', 'make_card_birth_m'] + numeric_column
+        categorical_column = ['money_relation', 'gneder_occuyp', 'family_house', 'relation_giefho',
+                              'phone_mail', 'occuyp_car', 'age_income', 'age_income_occu', 'income_age_car'] + categorical_column
+
+        income = [0, 50000, 100000, 150000, 200000, 250000, 300000, 400000, 600000, 800000]
+        m = 0
+        for i in income:
+            df.loc[df['Annual_income'] >= i, 'income_cat'] = m
+            m += 1
+        age = [0, 20, 30, 40, 50, 60]
+        m = 0
+        for i in age:
+            df.loc[df['age_y'] >= i, 'age_cat'] = m
+            m += 1
+
+        relation_age_income = list(product(*[np.arange(0.0, len(income)).tolist(), np.arange(0.0, len(age)).tolist()]))
+        label_all_data['age_income'] = [' '.join([str(j) for j in i]) for i in relation_age_income]
+        df.loc[:, 'age_income'] = df['income_cat'].astype(str) + ' ' + df['age_cat'].astype(str)
+        relation_age_income_ocu = list(product(*[np.arange(0.0, len(income)).tolist(), np.arange(0.0, len(age)).tolist(),
+                                                 label_all_data['occyp_type']]))
+        label_all_data['age_income_occu'] = [' '.join([str(j) for j in i]) for i in relation_age_income_ocu]
+        df.loc[:, 'age_income_occu'] = df['income_cat'].astype(str) + ' ' + df['age_cat'].astype(str) + ' ' + df['occyp_type']
+        relation_income_car = list(product(*[np.arange(0.0, len(income)).tolist(), np.arange(0.0, len(age)).tolist(),
+                                             label_all_data['car_reality']]))
+        label_all_data['income_age_car'] = [' '.join([str(j) for j in i]) for i in relation_income_car]
+        df.loc[:, 'income_age_car'] = df['income_cat'].astype(str) + ' ' + df['age_cat'].astype(str) + ' ' + df['car_reality'].astype(str)
 
         for column in categorical_column:
             e = LabelEncoder()
             if typed == 'test':
-                with open(default_path + f'label_encoding_{column}', 'rb') as f:
+                with open(default_path + f'encoder/label_encoding_{column}', 'rb') as f:
                     e = pickle.load(f)
             else:
-                with open(default_path + f'label_encoding_{column}', 'wb') as f:
+                with open(default_path + f'encoder/label_encoding_{column}', 'wb') as f:
                     e.fit(label_all_data[column])
                     pickle.dump(e, f)
             df[column] = e.transform(df[column])
             # mean_encode = 0
             # if typed == 'test':
-            #     with open(default_path + f'label_encoding_{column}', 'rb') as f:
+            #     with open(default_path + f'encoder/label_encoding_{column}', 'rb') as f:
             #         mean_encode = pickle.load(f)
             # else:
-            #     with open(default_path + f'label_encoding_{column}', 'wb') as f:
+            #     with open(default_path + f'encoder/label_encoding_{column}', 'wb') as f:
             #         mean_encode = df.groupby(column)['credit'].mean()
             #         pickle.dump(mean_encode, f)
             # df[column] = df[column].map(mean_encode)
 
+        categorical_column += ['income_cat', 'age_cat']
+
         df[numeric_column] = gauss_nomalizer(typed, df[numeric_column])
-        df = df.drop(['DAYS_BIRTH', 'working_day', 'begin_month', 'not_working_day', 'Annual_income'], axis=1)
+        # df = df.drop(['DAYS_BIRTH', 'working_day', 'begin_month', 'not_working_day', 'Annual_income'], axis=1)
 
         # if typed == 'train':
         #     df = df.drop(df[(df['all_income'] < df['all_income'].quantile(0.25) - 1.5 * (

@@ -15,11 +15,8 @@ def train_catboost(X, y, X_submmit, params, n_splits):
         X_train, X_val = X.iloc[train_index, :], X.iloc[val_index, :]
         y_train, y_val = y.iloc[train_index, :], y.iloc[val_index, :]
 
-        # train_pool = Pool(X_train, y_train, cat_features=categorical_columns)
-        # test_pool = Pool(X_val, y_val, cat_features=categorical_columns)
-
         clf = CatBoostClassifier(**params)
-        clf.fit(X_train, y_train, eval_set=(X_val, y_val), early_stopping_rounds=5000, verbose=0)
+        clf.fit(X_train, y_train, eval_set=(X_val, y_val), early_stopping_rounds=5000, verbose=1)
 
         predictions = clf.predict_proba(X_val)
 
@@ -35,7 +32,7 @@ def train_catboost(X, y, X_submmit, params, n_splits):
 
     submission = pd.read_csv('./data/sample_submission.csv')
     submission.loc[:, 1:] = my_submission
-    submission.to_csv(f'./data/submission/{n_splits}_{mean_outcome}_xgboost.csv', index=False)
+    submission.to_csv(f'./data/submission/kfold_5/{n_splits}_{mean_outcome}_xgboost.csv', index=False)
 
 def train_catboost_one(X, y, X_submmit, params):
     X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, stratify=y, random_state=678988)
@@ -91,7 +88,6 @@ def main():
     #     'max_leaves': 62,
     #     'iterations': 40000,
     # }
-
     # param 2
     # two_0.7027083784935696_xgboost.csv
     param = {
@@ -108,6 +104,25 @@ def main():
         'max_leaves': 56,
         'iterations': 40000,
     }
+
+
+    # Mean Encoding
+    # param 3
+    # param = {
+    #     'objective': 'MultiClass',
+    #     'depth': 13,
+    #     'learning_rate': 0.013196422959834992,
+    #     'grow_policy': 'SymmetricTree',
+    #     'bootstrap_type': 'Bayesian',
+    #     'l2_leaf_reg': 38,
+    #     'task_type': 'GPU',
+    #     'random_seed': 1234,
+    #     'thread_count': 1024,
+    #     'bagging_temperature': 0.09182176591772706,
+    #     'boosting_type': 'Plain',
+    #     'iterations': 40000,
+    # }
+
 
     # train_catboost_one(X, y, X_submmit, param)
 
