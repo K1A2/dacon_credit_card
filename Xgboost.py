@@ -89,17 +89,16 @@ def train_catboost(X, y, X_submmit, n_splits):
 '''
 {
 objective: MultiClass
-depth: 15
-learning_rate: 0.37301919266189065
+depth: 9
+learning_rate: 0.03
 grow_policy: Lossguide
 bootstrap_type: Bernoulli
-l2_leaf_reg: 15
-task_type: CPU
-random_seed: 1234
-thread_count: 24
-subsample: 0.6152218242287273
-max_leaves: 26
-iterations: 40000
+l2_leaf_reg: 2
+task_type: GPU
+random_state: 1234
+subsample: 0.86129349174007
+max_leaves: 41
+iterations: 80000
 }
 '''
 def param_tuning_optuna(X, y, categorical_columns):
@@ -164,9 +163,6 @@ def param_tuning_optuna(X, y, categorical_columns):
     for key, value in trial.params.items():
         print("    {}: {}".format(key, value))
 
-    optuna.visualization.plot_param_importances(study)
-    optuna.visualization.plot_optimization_history(study)
-
 def only_catbooost():
     dataio = DataIO.DataReadWrite()
     preprocesser = Preprocessing.PreprocesserGBoost()
@@ -190,9 +186,9 @@ def only_catbooost():
     y = y.reset_index()
     y = y.drop(['index'], axis=1)
 
+    print(categorical_columns)
     # for i in range(10, 26):
     #     train_catboost(X, y, X_submmit, i)
-    print(categorical_columns)
     param_tuning_optuna(X, y, categorical_columns)
 
     # X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, test_size=0.2, random_state=2424)

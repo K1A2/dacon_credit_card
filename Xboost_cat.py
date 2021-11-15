@@ -2,7 +2,7 @@ import numpy as np
 import DataIO
 import Preprocessing
 import pandas as pd
-from catboost import CatBoostClassifier
+from catboost import CatBoostClassifier, Pool
 from tensorflow.keras.utils import to_categorical
 from sklearn.metrics import log_loss
 from sklearn.model_selection import StratifiedKFold, train_test_split
@@ -10,7 +10,7 @@ from sklearn.model_selection import StratifiedKFold, train_test_split
 def train_stacking(X, y, X_submmit, params, n_split):
     pass
 
-def train_catboost(X, y, X_submmit, params, n_splits):
+def train_catboost(X, y, X_submmit, params, n_splits, categorical):
     folds = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=756353)
     outcomes = []
     sub = np.zeros((X_submmit.shape[0], 3))
@@ -18,8 +18,11 @@ def train_catboost(X, y, X_submmit, params, n_splits):
         X_train, X_val = X.iloc[train_index, :], X.iloc[val_index, :]
         y_train, y_val = y.iloc[train_index, :], y.iloc[val_index, :]
 
+        train_data = Pool(X_train, y_train, cat_features=categorical)
+        test_data = Pool(X_val, y_val, cat_features=categorical)
+
         clf = CatBoostClassifier(**params)
-        clf.fit(X_train, y_train, eval_set=(X_val, y_val), early_stopping_rounds=5000, verbose=1)
+        clf.fit(train_data, eval_set=test_data, early_stopping_rounds=5000, verbose=1000)
 
         predictions = clf.predict_proba(X_val)
 
@@ -103,21 +106,34 @@ def main():
     # }
     # param 2
     # two_0.7027083784935696_xgboost.csv
+    # param = {
+    #     'objective': 'MultiClass',
+    #     'depth': 10,
+    #     'learning_rate': 0.06576219655285793,
+    #     'grow_policy': 'Lossguide',
+    #     'bootstrap_type': 'Bernoulli',
+    #     'l2_leaf_reg': 5,
+    #     'task_type': 'CPU',
+    #     'random_seed': 1234,
+    #     'thread_count': 12,
+    #     'subsample': 0.692762589836913,
+    #     'max_leaves': 56,
+    #     'iterations': 40000,
+    # }
+    # param 4
     param = {
         'objective': 'MultiClass',
-        'depth': 10,
-        'learning_rate': 0.06576219655285793,
+        'depth': 9,
+        'learning_rate': 0.03,
         'grow_policy': 'Lossguide',
         'bootstrap_type': 'Bernoulli',
-        'l2_leaf_reg': 5,
-        'task_type': 'CPU',
-        'random_seed': 1234,
-        'thread_count': 12,
-        'subsample': 0.692762589836913,
-        'max_leaves': 56,
-        'iterations': 40000,
+        'l2_leaf_reg': 2,
+        'task_type': 'GPU',
+        'random_state': 1234,
+        'subsample': 0.86129349174007,
+        'max_leaves': 41,
+        'iterations': 80000,
     }
-
 
     # Mean Encoding
     # param 3
@@ -138,10 +154,12 @@ def main():
 
 
     # train_catboost_one(X, y, X_submmit, param)
-
+    print(len(X.columns.tolist()))
+    print(len(categorical_columns))
+    print(len(numerical_columns))
     for i in range(5, 20):
         print(f"KFold: {i}")
-        train_catboost(X, y, X_submmit, param, i)
+        train_catboost(X, y, X_submmit, param, i, categorical_columns)
 
 if __name__ == '__main__':
     main()

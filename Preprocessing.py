@@ -382,7 +382,10 @@ class PreprocesserGBoost():
         df['make_card_birth_m'] = df['make_card_birth'] % 12
 
         numeric_column = ['age_y', 'age_m', 'age_w', 'working_y', 'working_m', 'working_w', 'not_working_y',
-                          'not_working_m', 'not_working_w', 'begin_y', 'begin_m', 'all_income'] + numeric_column
+                          'not_working_m', 'not_working_w', 'begin_y', 'begin_m', 'all_income',
+                          'make_card_working', 'make_card_working_y', 'make_card_working_m',
+                          'make_card_birth', 'make_card_birth_y', 'make_card_birth_m',
+                          'not_working_day', 'working_day'] + numeric_column
         categorical_column = ['money_relation', 'gneder_occuyp', 'family_house', 'relation_giefho',
                               'phone_mail', 'occuyp_car'] + categorical_column
 
