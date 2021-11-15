@@ -108,7 +108,7 @@ def param_tuning_optuna(X, y, categorical_columns):
             param = {
                 "objective": "MultiClass",
                 "depth": trial.suggest_int("depth", 5, 16),
-                "learning_rate": 0.01,
+                "learning_rate": 0.015,
                 "grow_policy": trial.suggest_categorical(
                     "grow_policy", ['SymmetricTree', 'Lossguide']
                 ),
@@ -142,7 +142,7 @@ def param_tuning_optuna(X, y, categorical_columns):
             vaild_data = Pool(valid_x, valid_y, cat_features=categorical_columns)
 
             clf = CatBoostClassifier(**param)
-            clf.fit(train_data, eval_set=vaild_data, early_stopping_rounds=1000, verbose=5000)
+            clf.fit(train_data, eval_set=vaild_data, early_stopping_rounds=5000, verbose=5000)
 
             predictions = clf.predict_proba(valid_x)
             logloss = log_loss(to_categorical(valid_y), predictions)
