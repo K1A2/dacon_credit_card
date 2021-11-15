@@ -303,6 +303,7 @@ class PreprocesserGBoost():
         #                                 label_all_data['DAYS_BIRTH']]))
         relation_phone_mail = list(product(*[label_all_data['phone'], label_all_data['work_phone'], label_all_data['email']]))
         relation_occupy_car = list(product(*[label_all_data['occyp_type'], label_all_data['car_reality']]))
+        label_all_data['family_type_same'] = [0,1]
         label_all_data['money_relation'] = [' '.join([str(j) for j in i]) for i in relation_income_edu_occu]
         label_all_data['gneder_occuyp'] = [' '.join([str(j) for j in i]) for i in relation_gender_occu]
         label_all_data['family_house'] = [' '.join([str(j) for j in i]) for i in relation_family_house]
@@ -329,8 +330,7 @@ class PreprocesserGBoost():
         df.loc[:, 'phone_mail'] = df['phone'].astype(str) + ' ' + df['work_phone'].astype(str) + ' ' + df['email'].astype(str)
         df.loc[:, 'occuyp_car'] = df['occyp_type'] + ' ' + df['car_reality'].astype(str)
 
-        df.loc[(df['family_type'] == 'Single / not married') | (df['family_type'] == 'Separated') |
-               (df['family_type'] == 'Widow'), 'family_type_same'] = 0
+        df.loc[:,'family_type_same'] = 0
         df.loc[(df['family_type'] == 'Married') | (df['family_type'] == 'Civil marriage'), 'family_type_same'] = 1
 
         # for relation in relation_income_edu_occu:
@@ -384,10 +384,11 @@ class PreprocesserGBoost():
         numeric_column = ['age_y', 'age_m', 'age_w', 'working_y', 'working_m', 'working_w', 'not_working_y',
                           'not_working_m', 'not_working_w', 'begin_y', 'begin_m', 'all_income',
                           'make_card_working', 'make_card_working_y', 'make_card_working_m',
-                          'make_card_birth', 'make_card_birth_y', 'make_card_birth_m',
-                          'not_working_day', 'working_day'] + numeric_column
-        categorical_column = ['money_relation', 'gneder_occuyp', 'family_house', 'relation_giefho',
-                              'phone_mail', 'occuyp_car'] + categorical_column
+                          'make_card_birth', 'make_card_birth_y', 'make_card_birth_m', 'not_working_day',
+                          'Annual_income', 'DAYS_BIRTH', 'working_day', 'begin_month']
+        categorical_column = ['money_relation', 'gneder_occuyp', 'family_house', 'relation_giefho', 'family_type_same',
+                              'phone_mail', 'occuyp_car', 'gender', 'income_type', 'Education', 'family_type',
+                              'house_type', 'work_phone', 'phone', 'email', 'occyp_type', 'car_reality']
 
 
 
