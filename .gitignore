@@ -1,4 +1,4 @@
 .idea
-/data/encoder/*
+/data/encoder/
 /data/gauss_score
 /data/z_score
