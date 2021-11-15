@@ -131,6 +131,7 @@ def param_tuning_optuna(X, y, categorical_columns):
             if param['grow_policy'] == "Lossguide":
                 param['max_leaves'] = trial.suggest_int('max_leaves', 16, 64)
             param['iterations'] = 80000
+            param['allow_writing_files'] = False
 
             print(f"{trial.number}번\n" + "{")
             for k, v in param.items():
