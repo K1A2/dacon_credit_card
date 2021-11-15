@@ -118,7 +118,7 @@ def param_tuning_optuna(X, y, categorical_columns):
                 ),
                 "l2_leaf_reg": trial.suggest_int("l2_leaf_reg", 1, 50),
                 "task_type": "GPU",
-                "random_seed": 1234,
+                "random_state": 1234,
             }
 
             if param["bootstrap_type"] == "Bayesian":
