@@ -20,7 +20,8 @@ from tensorflow.keras.models import Model, load_model
 from tensorflow.keras.layers import Dense, Input
 from sklearn.metrics import confusion_matrix
 import Model as md
-import optuna
+import  ParamTuning
+import pickle
 
 def auto_encoder():
     dataio = DataIO.DataReadWrite()
@@ -101,68 +102,6 @@ max_leaves: 41
 iterations: 80000
 }
 '''
-def param_tuning_optuna(X, y, categorical_columns):
-    def objective(trial):
-        try:
-            train_x, valid_x, train_y, valid_y = train_test_split(X, y, test_size=0.2, stratify=y, random_state=678988)
-            param = {
-                "objective": "MultiClass",
-                "depth": trial.suggest_int("depth", 5, 16),
-                "learning_rate": 0.015,
-                "grow_policy": trial.suggest_categorical(
-                    "grow_policy", ['SymmetricTree', 'Lossguide']
-                ),
-                "bootstrap_type": trial.suggest_categorical(
-                    "bootstrap_type", ["Bayesian", "Bernoulli"]
-                ),
-                "l2_leaf_reg": trial.suggest_int("l2_leaf_reg", 1, 50),
-                "task_type": "GPU",
-                "random_state": 1234,
-            }
-
-            if param["bootstrap_type"] == "Bayesian":
-                param["bagging_temperature"] = trial.suggest_float("bagging_temperature", 0, 10)
-            elif param["bootstrap_type"] == "Bernoulli":
-                param["subsample"] = trial.suggest_float("subsample", 0.1, 1)
-
-            if param['grow_policy'] != "Lossguide":
-                param['boosting_type'] = 'Plain'
-
-            if param['grow_policy'] == "Lossguide":
-                param['max_leaves'] = trial.suggest_int('max_leaves', 16, 64)
-            param['iterations'] = 80000
-            param['allow_writing_files'] = False
-
-            print(f"{trial.number}번\n" + "{")
-            for k, v in param.items():
-                print(f"{k}: {v}")
-            print("}")
-
-            train_data = Pool(train_x, train_y, cat_features=categorical_columns)
-            vaild_data = Pool(valid_x, valid_y, cat_features=categorical_columns)
-
-            clf = CatBoostClassifier(**param)
-            clf.fit(train_data, eval_set=vaild_data, early_stopping_rounds=5000, verbose=5000)
-
-            predictions = clf.predict_proba(valid_x)
-            logloss = log_loss(to_categorical(valid_y), predictions)
-
-            print(f"{trial.number}번 logloss: {logloss}")
-
-            return logloss
-        except:
-            return 100
-
-    study = optuna.create_study(direction='minimize')
-    study.optimize(objective, n_trials=100)
-
-    print("Number of finished trials: {}".format(len(study.trials)))
-    print("Best trial:")
-    trial = study.best_trial
-    print("  Value: {}".format(trial.value))
-    print("  Params: ")
-    for key, value in trial.params.items():
-        print("    {}: {}".format(key, value))
 
 def only_catbooost():
     dataio = DataIO.DataReadWrite()
@@ -190,37 +129,18 @@ def only_catbooost():
     print(categorical_columns)
     # for i in range(10, 26):
     #     train_catboost(X, y, X_submmit, i)
-    param_tuning_optuna(X, y, categorical_columns)
 
-    # X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, test_size=0.2, random_state=2424)
+    tunner = ParamTuning.Tuner(X, y, categorical_columns)
 
-    # encoder:Model = load_model('./data/models/autoencoder/0_0_1656978577375412.h5')
-    # encoder = Model(inputs=encoder.input, outputs=encoder.layers[2].output)
+    # best_param_catboost = tunner.tuning_catboost(n_trials=1)
+    # print(best_param_catboost)
+    # with open('./data/params/best_param_catboost', 'wb') as f:
+    #     pickle.dump(best_param_catboost, f)
+    tunner.tuning_lgbm()
+
+# def stacking():
+    # def stack_catboost():
     #
-    # X_train = encoder.predict(X_train)
-    # X_test = encoder.predict(X_test)
-    # print(X_train)
-
-
-
-    # model = CatBoostClassifier(iterations=5000, task_type="GPU", devices='0:1')
-    # model.fit(X_train, y_train, eval_set=(X_test, y_test))
-    # d = pd.DataFrame({"importance": model.get_feature_importance(),
-    #                   "label": ['gender', 'income_type', 'Education', 'family_type', 'house_type',
-    #                             'work_phone', 'phone', 'email', 'occyp_type', 'car_reality',
-    #                             'not_working_year', 'not_working_month', 'not_working_week', 'Age_range',
-    #                             'working_year_range', 'working_month', 'working_week', 'begin_year_range', 'begin_month',
-    #                             'Annual_income']})
-    # sns.barplot(data=d, y='label', x='importance')
-    # plt.show()
-    # y_pred = model.predict_proba(X_test)
-    # loss = log_loss(to_categorical(y_test), y_pred)
-    # print(f"CatBoostClassifier log_loss: {loss}")
-    #
-    # pred_sub = model.predict_proba(X_submmit)
-    # submission = pd.read_csv('./data/sample_submission.csv')
-    # submission.loc[:, 1:] = pred_sub
-    # submission.to_csv(f'./data/submission/{loss}_xgboost.csv', index=False)
 
 def stakcing():
     def get_stacked(model, X_train, y_train, X_test, n_folds):
