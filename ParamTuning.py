@@ -105,7 +105,7 @@ class Tuner():
         valid_x = self.__valid_x
         valid_y = self.__valid_y
 
-        model = LGBMClassifier(device='gpu')
+        model = LGBMClassifier(device_type='cuda')
         data = [[0,1,3],[1,2,1],[1,1,3]]
         data = np.array(data)
 
