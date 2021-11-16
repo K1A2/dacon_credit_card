@@ -121,18 +121,33 @@ def main():
     #     'iterations': 40000,
     # }
     # param 4
+    # param = {
+    #     'objective': 'MultiClass',
+    #     'depth': 9,
+    #     'learning_rate': 0.03,
+    #     'grow_policy': 'Lossguide',
+    #     'bootstrap_type': 'Bernoulli',
+    #     'l2_leaf_reg': 2,
+    #     'task_type': 'GPU',
+    #     'random_state': 1234,
+    #     'subsample': 0.86129349174007,
+    #     'max_leaves': 41,
+    #     'iterations': 80000,
+    # }
+    #prarm 5
     param = {
         'objective': 'MultiClass',
-        'depth': 9,
-        'learning_rate': 0.03,
+        'depth': 14,
+        'learning_rate': 0.015,
         'grow_policy': 'Lossguide',
         'bootstrap_type': 'Bernoulli',
-        'l2_leaf_reg': 2,
+        'l2_leaf_reg': 3,
         'task_type': 'GPU',
         'random_state': 1234,
-        'subsample': 0.86129349174007,
-        'max_leaves': 41,
+        'subsample': 0.8500607447093872,
+        'max_leaves': 51,
         'iterations': 80000,
+        'allow_writing_files': False
     }
 
     # Mean Encoding
