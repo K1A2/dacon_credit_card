@@ -172,7 +172,7 @@ def main():
     print(len(X.columns.tolist()))
     print(len(categorical_columns))
     print(len(numerical_columns))
-    for i in range(5, 20):
+    for i in range(10, 20):
         print(f"KFold: {i}")
         train_catboost(X, y, X_submmit, param, i, categorical_columns)
 
