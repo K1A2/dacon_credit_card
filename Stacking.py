@@ -233,7 +233,7 @@ class StackingKfold():
 
                     model = LGBMClassifier(**param)
                     model.fit(X_train, y_train, eval_set=[(X_train, y_train), (X_valid, y_valid)],
-                              callbacks=[early_stopping(stopping_rounds=10000), log_evaluation(period=5000)])
+                              callbacks=[early_stopping(stopping_rounds=10000)])
 
                     stack_val[valid_idx, :] = model.predict_proba(stacking_train[valid_idx])
                     stack_test += model.predict_proba(stacking_test) / n_folds
