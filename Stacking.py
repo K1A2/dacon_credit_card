@@ -146,3 +146,40 @@ class StackingKfold():
             pickle.dump(train_pred, f)
         with open('./data/stacking_test', 'wb') as f:
             pickle.dump(test_pred, f)
+
+    def stacking_last(self, n_folds):
+        stacking_train = None
+        stacking_test = None
+        with open('./data/stacking_train', 'rb') as f:
+            stacking_train = pickle.load(f)
+        with open('./data/stacking_test', 'rb') as f:
+            stacking_test = pickle.load(f)
+
+        print(stacking_train.shape)
+        print(stacking_test.shape)
+
+        params = {}
+        with open('./data/params/best_param_lgbm', 'rb') as f:
+            params = pickle.load(f)
+        params['learning_rate'] = 0.25
+        print(params)
+
+        folds = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=42)
+        stack_val = np.zeros((stacking_train.shape[0], 3))
+        stack_test = np.zeros((stacking_test.shape[0], 3))
+        for fold, (train_idx, valid_idx) in enumerate(folds.split(stacking_train, self.__y), 1):
+            X_train, X_valid = stacking_train[train_idx], stacking_train[valid_idx]
+            y_train, y_valid = self.__y.iloc[train_idx], self.__y.iloc[valid_idx]
+
+            model = LGBMClassifier(**params)
+            model.fit(X_train, y_train, eval_set=[(X_train, y_train), (X_valid, y_valid)],
+                      callbacks=[early_stopping(stopping_rounds=10000), log_evaluation(period=5000)])
+
+            stack_val[valid_idx, :] = model.predict_proba(stacking_train[valid_idx])
+            stack_test += model.predict_proba(stacking_test) / n_folds
+
+        loss = log_loss(self.__y, stack_val)
+        print(f'{loss}')
+        submission = pd.read_csv('./data/sample_submission.csv')
+        submission.loc[:, 1:] = stack_test
+        submission.to_csv(f'./data/submission/stacking_{n_folds}_{loss}_xgboost.csv', index=False)

@@ -132,7 +132,8 @@ def only_catbooost():
     #     train_catboost(X, y, X_submmit, i)
     # tuning(X, y, categorical_columns)
     stacking = Stacking.StackingKfold(X, y, X_submmit, categorical_columns)
-    stacking.stakcing(13)
+    # stacking.stakcing(13)
+    stacking.stacking_last(13)
 
 def tuning(X, y, categorical_columns):
     tunner = ParamTuning.Tuner(X, y, categorical_columns)
