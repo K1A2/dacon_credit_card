@@ -139,12 +139,12 @@ def tuning(X, y, categorical_columns):
     # with open('./data/params/best_param_catboost', 'wb') as f:
     #     pickle.dump(best_param_catboost, f)
 
-    best_param_lgbm = tunner.tuning_lgbm(n_trials=1)
+    best_param_lgbm = tunner.tuning_lgbm(n_trials=75)
     print(best_param_lgbm)
     with open('./data/params/best_param_lgbm', 'wb') as f:
         pickle.dump(best_param_lgbm, f)
 
-    best_param_xgb = tunner.tuning_xgboost(n_trials=1)
+    best_param_xgb = tunner.tuning_xgboost(n_trials=75)
     print(best_param_xgb)
     with open('./data/params/best_param_xgb', 'wb') as f:
         pickle.dump(best_param_xgb, f)

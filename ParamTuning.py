@@ -117,7 +117,7 @@ class Tuner():
         param_defulat['device_type'] = 'cuda'
         param_defulat['random_state'] = 1234
         param_defulat['n_estimators'] = 80000
-        param_defulat['boosting_type'] = 'cuda'
+        param_defulat['boosting_type'] = 'gbdt'
 
         def objective(trial):
             try:
