@@ -110,7 +110,7 @@ class Tuner():
         valid_y = self.__valid_y.values.ravel()
 
         param_defulat = {}
-        param_defulat['learning_rate'] = 0.015
+        param_defulat['learning_rate'] = 0.05
         param_defulat["objective"] = "multiclass"
         param_defulat['n_jobs'] = 12
         param_defulat['metric'] = 'multi_logloss'
@@ -144,7 +144,7 @@ class Tuner():
 
                 lgbm = LGBMClassifier(**param,)
                 lgbm.fit(train_x, train_y, eval_set=[(train_x, train_y), (valid_x, valid_y)],
-                         callbacks=[early_stopping(stopping_rounds=10000), log_evaluation(period=5000)])
+                         callbacks=[early_stopping(stopping_rounds=5000), log_evaluation(period=5000)])
 
                 predictions = lgbm.predict_proba(valid_x)
                 logloss = log_loss(to_categorical(valid_y), predictions)
