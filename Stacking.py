@@ -159,7 +159,7 @@ class StackingKfold():
         print(stacking_test.shape)
 
         params = {}
-        with open('./data/params/best_param_lgbm', 'rb') as f:
+        with open('./data/params/best_param_lgbm_stacked', 'rb') as f:
             params = pickle.load(f)
         params['learning_rate'] = 0.25
         print(params)
@@ -183,3 +183,80 @@ class StackingKfold():
         submission = pd.read_csv('./data/sample_submission.csv')
         submission.loc[:, 1:] = stack_test
         submission.to_csv(f'./data/submission/stacking_{n_folds}_{loss}_xgboost.csv', index=False)
+
+    def tuning_lgbm_stack(self, n_trials, n_folds):
+        stacking_train = None
+        stacking_test = None
+        with open('./data/stacking_train', 'rb') as f:
+            stacking_train = pickle.load(f)
+        with open('./data/stacking_test', 'rb') as f:
+            stacking_test = pickle.load(f)
+
+        param_defulat = {}
+        param_defulat['learning_rate'] = 0.015
+        param_defulat["objective"] = "multiclass"
+        param_defulat['n_jobs'] = 12
+        param_defulat['metric'] = 'multi_logloss'
+        param_defulat['device_type'] = 'cuda'
+        param_defulat['random_state'] = 1234
+        param_defulat['n_estimators'] = 80000
+        param_defulat['boosting_type'] = 'gbdt'
+
+        def objective(trial):
+            try:
+                param = {
+                    'bagging_freq': trial.suggest_int('bagging_freq', 1, 20),
+                    'bagging_fraction': trial.suggest_float('bagging_fraction', 0.5, 1.0),
+                    'max_depth': trial.suggest_int('max_depth', 3, 10),
+                    'min_child_samples': trial.suggest_int('min_data_in_leaf', 5, 1000),
+                    'colsample_bytree': trial.suggest_float('colsample_bytree', 0.1, 1.0),
+                    'reg_alpha': trial.suggest_float('reg_alpha', 0.0, 120.0),
+                    'reg_lambda': trial.suggest_float('reg_lambda', 0.0, 1.0),
+                    'max_bin': trial.suggest_int('max_bin', 1, 255),
+                }
+
+                param['num_leaves'] = round((2 ** param['max_depth']) * 0.6)
+
+                for k, v in param_defulat.items():
+                    param[k] = v
+
+                print(f"{trial.number}번\n" + "{")
+                for k, v in param.items():
+                    print(f"{k}: {v}")
+                print("}")
+
+                folds = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=42)
+                stack_val = np.zeros((stacking_train.shape[0], 3))
+                stack_test = np.zeros((stacking_test.shape[0], 3))
+                for fold, (train_idx, valid_idx) in enumerate(folds.split(stacking_train, self.__y), 1):
+                    X_train, X_valid = stacking_train[train_idx], stacking_train[valid_idx]
+                    y_train, y_valid = self.__y.iloc[train_idx], self.__y.iloc[valid_idx]
+
+                    model = LGBMClassifier(**param)
+                    model.fit(X_train, y_train, eval_set=[(X_train, y_train), (X_valid, y_valid)],
+                              callbacks=[early_stopping(stopping_rounds=10000), log_evaluation(period=5000)])
+
+                    stack_val[valid_idx, :] = model.predict_proba(stacking_train[valid_idx])
+                    stack_test += model.predict_proba(stacking_test) / n_folds
+
+                loss = log_loss(self.__y, stack_val)
+
+                return loss
+            except:
+                return 100
+
+        study = optuna.create_study(direction='minimize')
+        study.optimize(objective, n_trials=n_trials)
+
+        print("Number of finished trials: {}".format(len(study.trials)))
+        print("Best trial:")
+        trial = study.best_trial
+        print("  Value: {}".format(trial.value))
+        print("  Params: ")
+
+        for key, value in trial.params.items():
+            param_defulat[key] = value
+        param_defulat['num_leaves'] = round(2 ** param_defulat['max_depth'] * 0.6)
+        for key, value in param_defulat.items():
+            print("    {}: {}".format(key, value))
+        return param_defulat
