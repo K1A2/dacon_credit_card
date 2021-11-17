@@ -161,7 +161,6 @@ class StackingKfold():
         params = {}
         with open('./data/params/best_param_lgbm_stacked', 'rb') as f:
             params = pickle.load(f)
-        params['learning_rate'] = 0.25
         print(params)
 
         folds = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=42)
@@ -199,7 +198,7 @@ class StackingKfold():
         param_defulat['metric'] = 'multi_logloss'
         param_defulat['device_type'] = 'cuda'
         param_defulat['random_state'] = 1234
-        param_defulat['n_estimators'] = 80000
+        param_defulat['n_estimators'] = 100000
         param_defulat['boosting_type'] = 'gbdt'
 
         def objective(trial):
