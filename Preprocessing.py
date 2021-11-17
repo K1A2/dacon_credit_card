@@ -447,7 +447,7 @@ class PreprocesserGBoost():
 
         # categorical_column += ['income_cat', 'age_cat']
 
-        df[numeric_column] = gauss_nomalizer(typed, df[numeric_column])
+        df[numeric_column] = z_score_nomalizer(typed, df[numeric_column])
         # df = df.drop(['DAYS_BIRTH', 'working_day', 'begin_month', 'not_working_day', 'Annual_income'], axis=1)
 
         # if typed == 'train':

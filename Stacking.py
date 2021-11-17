@@ -142,7 +142,6 @@ class StackingKfold():
         train_pred = np.concatenate([cat_val, lgbm_val, xgb_val, rf_val], axis=1)
         test_pred = np.concatenate([cat_test, lgbm_test, xgb_test, rf_test], axis=1)
         print(train_pred.shape, test_pred.shape)
-
         with open('./data/stacking_train', 'wb') as f:
             pickle.dump(train_pred, f)
         with open('./data/stacking_test', 'wb') as f:
