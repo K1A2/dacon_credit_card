@@ -114,25 +114,26 @@ def only_catbooost():
     # df = df.drop_duplicates(df.columns)
 
     # 클래스 분리
-    y = df.loc[:, ['credit']]
+    # y = df.loc[:, ['credit']]
     # df = df.drop(['credit'], axis=1)
 
     # 데이터 전처리
-    X, numerical_columns, categorical_columns = preprocesser.data_preprocess_2_comb(df.drop_duplicates(), 'train')
+    X, y, numerical_columns, categorical_columns = preprocesser.data_preprocess_2_comb(df, 'train')
     X_submmit, numerical_submmit, categorical_submmit = preprocesser.data_preprocess_2_comb(df_test, 'test')
+    y = y.loc[:, 'credit']
 
-    y = y.loc[X.index,:]
-    X = X.reset_index()
-    X = X.drop(['index'], axis=1)
-    y = y.reset_index()
-    y = y.drop(['index'], axis=1)
+    # y = y.loc[X.index,:]
+    # X = X.reset_index()
+    # X = X.drop(['index'], axis=1)
+    # y = y.reset_index()
+    # y = y.drop(['index'], axis=1)
 
     print(categorical_columns)
     # for i in range(10, 26):
     #     train_catboost(X, y, X_submmit, i)
     # tuning(X, y, categorical_columns)
     stacking = Stacking.StackingKfold(X, y, X_submmit, categorical_columns)
-    # stacking.stakcing(13)
+    stacking.stakcing(13)
     # best_param_lgbm = stacking.tuning_lgbm_stack(100, 13)
     # print(best_param_lgbm)
     # with open('./data/params/best_param_lgbm_stacked', 'wb') as f:

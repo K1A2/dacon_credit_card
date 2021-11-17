@@ -389,6 +389,8 @@ class PreprocesserGBoost():
         categorical_column = ['money_relation', 'gneder_occuyp', 'family_house', 'relation_giefho', 'family_type_same',
                               'phone_mail', 'occuyp_car', 'gender', 'income_type', 'Education', 'family_type',
                               'house_type', 'work_phone', 'phone', 'email', 'occyp_type', 'car_reality']
+        if typed == 'train':
+            categorical_column.append('credit')
 
 
 
@@ -447,6 +449,21 @@ class PreprocesserGBoost():
 
         # categorical_column += ['income_cat', 'age_cat']
 
+        if typed == 'train':
+            y = df[['credit']].astype(int)
+            df = df.drop(['credit'], axis=1)
+            cat = []
+            for c in df.columns:
+                if c in categorical_column:
+                    cat.append(True)
+                else:
+                    cat.append(False)
+            over_sampling = SMOTENC(categorical_features=cat, random_state=42)
+            df, y = over_sampling.fit_resample(df, y)
+
+        for n in numeric_column:
+            df[n] = np.floor(df[n].values).astype(int)
+
         df[numeric_column] = z_score_nomalizer(typed, df[numeric_column])
         # df = df.drop(['DAYS_BIRTH', 'working_day', 'begin_month', 'not_working_day', 'Annual_income'], axis=1)
 
@@ -459,11 +476,16 @@ class PreprocesserGBoost():
         #     sns.histplot(x=df[c])
         #     plt.show()
 
+        if typed == 'train':
+            categorical_column.remove('credit')
+
         for i in categorical_column:
             df[i] = df[i].astype(int)
 
-        if typed == 'train':
-            df = df.drop(['credit'], axis=1)
         print(df.iloc[0,:])
         print(df.shape)
-        return df, numeric_column, categorical_column
+        print()
+        if typed == 'train':
+            return df, y, numeric_column, categorical_column
+        else:
+            return df, numeric_column, categorical_column
