@@ -186,7 +186,7 @@ class Tuner():
         param_defulat['n_estimators'] = 80000
         param_defulat['random_state'] = 1234
         param_defulat['booster'] = 'gbtree'
-        param_defulat['tree_method'] = 'hist'
+        param_defulat['tree_method'] = 'gpu_hist'
         param_defulat['objective'] = 'multi:softmax'
         param_defulat['use_label_encoder'] = False
 
