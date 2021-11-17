@@ -129,14 +129,30 @@ def only_catbooost():
     print(categorical_columns)
     # for i in range(10, 26):
     #     train_catboost(X, y, X_submmit, i)
+    tuning(X, y, categorical_columns)
 
+def tuning(X, y, categorical_columns):
     tunner = ParamTuning.Tuner(X, y, categorical_columns)
 
     # best_param_catboost = tunner.tuning_catboost(n_trials=1)
     # print(best_param_catboost)
     # with open('./data/params/best_param_catboost', 'wb') as f:
     #     pickle.dump(best_param_catboost, f)
-    tunner.tuning_lgbm()
+
+    best_param_lgbm = tunner.tuning_lgbm(n_trials=1)
+    print(best_param_lgbm)
+    with open('./data/params/best_param_lgbm', 'wb') as f:
+        pickle.dump(best_param_lgbm, f)
+
+    best_param_xgb = tunner.tuning_xgboost(n_trials=1)
+    print(best_param_xgb)
+    with open('./data/params/best_param_xgb', 'wb') as f:
+        pickle.dump(best_param_xgb, f)
+
+    best_param_rf = tunner.tuning_rf()
+    print(best_param_rf)
+    with open('./data/params/best_param_rf', 'wb') as f:
+        pickle.dump(best_param_rf, f)
 
 # def stacking():
     # def stack_catboost():

@@ -135,17 +135,32 @@ def main():
     #     'iterations': 80000,
     # }
     #prarm 5
+    # param = {
+    #     'objective': 'MultiClass',
+    #     'depth': 14,
+    #     'learning_rate': 0.015,
+    #     'grow_policy': 'Lossguide',
+    #     'bootstrap_type': 'Bernoulli',
+    #     'l2_leaf_reg': 3,
+    #     'task_type': 'GPU',
+    #     'random_state': 1234,
+    #     'subsample': 0.8500607447093872,
+    #     'max_leaves': 51,
+    #     'iterations': 80000,
+    #     'allow_writing_files': False
+    # }
+    # param6
     param = {
         'objective': 'MultiClass',
-        'depth': 14,
+        'depth': 13,
         'learning_rate': 0.015,
         'grow_policy': 'Lossguide',
         'bootstrap_type': 'Bernoulli',
-        'l2_leaf_reg': 3,
+        'l2_leaf_reg': 1,
         'task_type': 'GPU',
         'random_state': 1234,
-        'subsample': 0.8500607447093872,
-        'max_leaves': 51,
+        'subsample': 0.7415073673257514,
+        'max_leaves': 60,
         'iterations': 80000,
         'allow_writing_files': False
     }
