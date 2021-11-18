@@ -28,7 +28,7 @@ class StackingKfold():
         self.__categorical_columns = categorical_columns
 
     def train_catboost(self, n_folds):
-        folds = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=42)
+        folds = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=4558)
         splits = folds.split(self.__X, self.__y)
         cat_val = np.zeros((self.__X.shape[0], 3))
         cat_test = np.zeros((self.__X_test.shape[0], 3))
@@ -56,7 +56,7 @@ class StackingKfold():
         return cat_val, cat_test
 
     def train_lgbm(self, n_folds):
-        folds = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=42)
+        folds = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=4558)
         splits = folds.split(self.__X, self.__y)
         lgbm_val = np.zeros((self.__X.shape[0], 3))
         lgbm_test = np.zeros((self.__X_test.shape[0], 3))
@@ -84,7 +84,7 @@ class StackingKfold():
         return lgbm_val, lgbm_test
 
     def train_xgb(self, n_folds):
-        folds = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=42)
+        folds = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=4558)
         splits = folds.split(self.__X, self.__y)
         xgb_val = np.zeros((self.__X.shape[0], 3))
         xgb_test = np.zeros((self.__X_test.shape[0], 3))
@@ -116,7 +116,7 @@ class StackingKfold():
         return xgb_val, xgb_test
 
     def train_rf(self, n_folds):
-        folds = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=42)
+        folds = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=4558)
         splits = folds.split(self.__X, self.__y)
         rf_val = np.zeros((self.__X.shape[0], 3))
         rf_test = np.zeros((self.__X_test.shape[0], 3))
@@ -177,7 +177,7 @@ class StackingKfold():
             params = pickle.load(f)
         print(params)
 
-        folds = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=42)
+        folds = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=4558)
         stack_val = np.zeros((stacking_train.shape[0], 3))
         stack_test = np.zeros((stacking_test.shape[0], 3))
         for fold, (train_idx, valid_idx) in enumerate(folds.split(stacking_train, self.__y), 1):
@@ -238,7 +238,7 @@ class StackingKfold():
                     print(f"{k}: {v}")
                 print("}")
 
-                folds = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=42)
+                folds = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=4558)
                 stack_val = np.zeros((stacking_train.shape[0], 3))
                 stack_test = np.zeros((stacking_test.shape[0], 3))
                 for fold, (train_idx, valid_idx) in enumerate(folds.split(stacking_train, self.__y), 1):

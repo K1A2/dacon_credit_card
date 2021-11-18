@@ -138,10 +138,10 @@ def only_catbooost():
     #     pickle.dump(best_param_lgbm, f)
 
     stacking = Stacking.StackingKfold(X, y, X_submmit, categorical_columns)
-    # stacking.stakcing(13)
-    # stacking.stacking_last(13)
+    stacking.stakcing(18)
+    stacking.stacking_last(18)
 
-    stacking.r(13, 100)
+    # stacking.r(18, 100)
 
 def tuning(X, y, categorical_columns):
     tunner = ParamTuning.Tuner(X, y, categorical_columns)
