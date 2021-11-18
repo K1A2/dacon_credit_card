@@ -144,7 +144,7 @@ class Tuner():
 
                 lgbm = LGBMClassifier(**param,)
                 lgbm.fit(train_x, train_y, eval_set=[(train_x, train_y), (valid_x, valid_y)],
-                         callbacks=[early_stopping(stopping_rounds=5000), log_evaluation(period=5000)])
+                         callbacks=[early_stopping(stopping_rounds=1000), log_evaluation(period=5000)])
 
                 predictions = lgbm.predict_proba(valid_x)
                 logloss = log_loss(to_categorical(valid_y), predictions)
@@ -218,7 +218,7 @@ class Tuner():
 
                 xgb = XGBClassifier(**param,)
                 xgb.fit(train_x, train_y, eval_set=[(train_x, train_y), (valid_x, valid_y)],
-                        early_stopping_rounds=2500, verbose=False, eval_metric='mlogloss')
+                        early_stopping_rounds=1000, verbose=500, eval_metric='mlogloss')
 
                 predictions = xgb.predict_proba(valid_x)
                 logloss = log_loss(to_categorical(valid_y), predictions)
@@ -263,7 +263,7 @@ class Tuner():
         }
 
         rf = RandomForestClassifier(random_state=42, n_jobs=12)
-        grid_cv = GridSearchCV(rf, param_grid=param_defulat, cv=3, n_jobs=12)
+        grid_cv = GridSearchCV(rf, param_grid=param_defulat, cv=18, n_jobs=12)
         grid_cv.fit(train_x, train_y)
 
         print('최적 하이퍼 파라미터: ', grid_cv.best_params_)
