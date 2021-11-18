@@ -392,6 +392,9 @@ class PreprocesserGBoost():
         categorical_column = ['money_relation', 'gneder_occuyp', 'family_house', 'relation_giefho', 'family_type_same',
                               'phone_mail', 'occuyp_car', 'gender', 'income_type', 'Education', 'family_type',
                               'house_type', 'work_phone', 'phone', 'email', 'occyp_type', 'car_reality', 'gender_reality']
+
+        categorical_column.remove('gneder_occuyp')
+
         if typed == 'train':
             categorical_column.append('credit')
 
