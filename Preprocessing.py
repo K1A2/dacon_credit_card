@@ -488,14 +488,14 @@ class PreprocesserGBoost():
         #        'all_income', 'make_card_working', 'make_card_working_y',
         #        'make_card_working_m', 'make_card_birth', 'make_card_birth_y',
         #        'make_card_birth_m']
-        fullModel = OLS(y, df)
-        fittedFullModel = fullModel.fit()
-        print(fittedFullModel.summary())
-        df = df.drop(['DAYS_BIRTH', 'income_type', 'Education', 'family_type', 'house_type', 'occyp_type', 'begin_month', 'money_relation', 'family_house'], axis=1)
-        vif = pd.DataFrame()
-        vif["VIF Factor"] = [variance_inflation_factor(df.values, i) for i in range(df.shape[1])]
-        vif["features"] = df.columns
-        print(vif)
+        # fullModel = OLS(y, df)
+        # fittedFullModel = fullModel.fit()
+        # print(fittedFullModel.summary())
+        # df = df.drop(['DAYS_BIRTH', 'income_type', 'Education', 'family_type', 'house_type', 'occyp_type', 'begin_month', 'money_relation', 'family_house'], axis=1)
+        # vif = pd.DataFrame()
+        # vif["VIF Factor"] = [variance_inflation_factor(df.values, i) for i in range(df.shape[1])]
+        # vif["features"] = df.columns
+        # print(vif)
 
         for i in categorical_column:
             df[i] = df[i].astype(int)
