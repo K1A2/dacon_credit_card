@@ -439,7 +439,7 @@ class PreprocesserGBoost():
                     e = pickle.load(f)
             else:
                 with open(default_path + f'encoder/label_encoding_{column}', 'wb') as f:
-                    e.fit(df[column].values, y)
+                    e.fit(df[column].values)
                     pickle.dump(e, f)
             df[column] = e.transform(df[column].values)
 
