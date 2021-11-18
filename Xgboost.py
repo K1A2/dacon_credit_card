@@ -132,16 +132,17 @@ def only_catbooost():
     # for i in range(10, 26):
     #     train_catboost(X, y, X_submmit, i)
     # tuning(X, y, categorical_columns)
+
+    stacking = Stacking.StackingKfold(X, y, X_submmit, categorical_columns)
     # best_param_lgbm = stacking.tuning_lgbm_stack(100, 13)
     # print(best_param_lgbm)
     # with open('./data/params/best_param_lgbm_stacked', 'wb') as f:
     #     pickle.dump(best_param_lgbm, f)
 
-    stacking = Stacking.StackingKfold(X, y, X_submmit, categorical_columns)
     stacking.stakcing(18)
     stacking.stacking_last(18)
-
-    stacking.r(18, 100)
+    #
+    # stacking.r(18, 100)
 
 def tuning(X, y, categorical_columns):
     tunner = ParamTuning.Tuner(X, y, categorical_columns)

@@ -37,7 +37,7 @@ class Tuner():
         param_defulat['iterations'] = 80000
         param_defulat['allow_writing_files'] = False
         param_defulat['learning_rate'] = 0.015
-        param_defulat['task_type'] = 'CPU'
+        param_defulat['task_type'] = 'GPU'
         param_defulat['random_state'] = 1234
         def objective(trial):
             try:

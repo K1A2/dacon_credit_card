@@ -36,6 +36,7 @@ class StackingKfold():
         params = {}
         with open('./data/params/best_param_catboost', 'rb') as f:
             params = pickle.load(f)
+        params['task_type'] = 'GPU'
         # params['class_weights'] = {0: 2.7371198,  1: 1.40721238, 2: 0.51974305}
         print(params)
 
