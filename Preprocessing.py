@@ -433,7 +433,7 @@ class PreprocesserGBoost():
 
         for column in categorical_column:
             # e = ce.TargetEncoder()
-            e = LabelEncoder()z
+            e = LabelEncoder()
             if typed == 'test':
                 with open(default_path + f'encoder/label_encoding_{column}', 'rb') as f:
                     e = pickle.load(f)
