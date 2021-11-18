@@ -147,17 +147,17 @@ def only_catbooost():
 def tuning(X, y, categorical_columns):
     tunner = ParamTuning.Tuner(X, y, categorical_columns)
 
-    # best_param_catboost = tunner.tuning_catboost(n_trials=1)
-    # print(best_param_catboost)
-    # with open('./data/params/best_param_catboost', 'wb') as f:
-    #     pickle.dump(best_param_catboost, f)
+    best_param_catboost = tunner.tuning_catboost(n_trials=100)
+    print(best_param_catboost)
+    with open('./data/params/best_param_catboost', 'wb') as f:
+        pickle.dump(best_param_catboost, f)
 
-    best_param_lgbm = tunner.tuning_lgbm(n_trials=75)
+    best_param_lgbm = tunner.tuning_lgbm(n_trials=150)
     print(best_param_lgbm)
     with open('./data/params/best_param_lgbm', 'wb') as f:
         pickle.dump(best_param_lgbm, f)
 
-    best_param_xgb = tunner.tuning_xgboost(n_trials=75)
+    best_param_xgb = tunner.tuning_xgboost(n_trials=150)
     print(best_param_xgb)
     with open('./data/params/best_param_xgb', 'wb') as f:
         pickle.dump(best_param_xgb, f)

@@ -256,7 +256,7 @@ class Tuner():
         valid_y = valid_y.astype(int)
 
         param_defulat = {
-            'n_estimators': [10, 100, 300],
+            'n_estimators': [10, 50, 100, 200, 300],
             'max_depth': [6, 8, 10, 12, 16, 24],
             'min_samples_leaf': [8, 12, 18, 22],
             'min_samples_split': [8, 16, 20, 24],
