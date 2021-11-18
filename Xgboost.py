@@ -147,10 +147,10 @@ def only_catbooost():
 def tuning(X, y, categorical_columns):
     tunner = ParamTuning.Tuner(X, y, categorical_columns)
 
-    best_param_rf = tunner.tuning_rf()
-    print(best_param_rf)
-    with open('./data/params/best_param_rf', 'wb') as f:
-        pickle.dump(best_param_rf, f)
+    # best_param_rf = tunner.tuning_rf()
+    # print(best_param_rf)
+    # with open('./data/params/best_param_rf', 'wb') as f:
+    #     pickle.dump(best_param_rf, f)
 
     best_param_lgbm = tunner.tuning_lgbm(n_trials=150)
     print(best_param_lgbm)
