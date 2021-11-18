@@ -273,3 +273,45 @@ class StackingKfold():
         for key, value in param_defulat.items():
             print("    {}: {}".format(key, value))
         return param_defulat
+
+    def r(self, n_folds, n_trials):
+        param_defulat = {}
+        with open('./data/params/best_param_catboost', 'rb') as f:
+            param_defulat = pickle.load(f)
+        def objective(trial):
+            try:
+                folds = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=trial.suggest_int('seed', 0, 10000))
+                splits = folds.split(self.__X, self.__y)
+                cat_val = np.zeros((self.__X.shape[0], 3))
+                cat_test = np.zeros((self.__X_test.shape[0], 3))
+
+                for fold, (train_idx, valid_idx) in enumerate(splits):
+                    X_train, X_valid = self.__X.iloc[train_idx], self.__X.iloc[valid_idx]
+                    y_train, y_valid = self.__y.iloc[train_idx], self.__y.iloc[valid_idx]
+                    train_data = Pool(data=X_train, label=y_train, cat_features=self.__categorical_columns)
+                    valid_data = Pool(data=X_valid, label=y_valid, cat_features=self.__categorical_columns)
+
+                    model = CatBoostClassifier(**param_defulat)
+                    model.fit(train_data, eval_set=valid_data, early_stopping_rounds=5000, verbose=5000,
+                              use_best_model=True)
+
+                    cat_val[valid_idx] = model.predict_proba(X_valid)
+                    cat_test += model.predict_proba(self.__X_test) / n_folds
+
+                log_score = log_loss(self.__y, cat_val)
+                print(f"Catboost Log Loss Score: {log_score:.5f}\n")
+
+                return log_score
+            except:
+                return 100
+
+        study = optuna.create_study(direction='minimize')
+        study.optimize(objective, n_trials=n_trials)
+
+        print("Number of finished trials: {}".format(len(study.trials)))
+        print("Best trial:")
+        trial = study.best_trial
+        print("  Value: {}".format(trial.value))
+        print("  Params: ")
+
+        return trial.params
