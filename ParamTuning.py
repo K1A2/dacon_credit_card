@@ -110,7 +110,7 @@ class Tuner():
         valid_y = self.__valid_y.values.ravel()
 
         param_defulat = {}
-        param_defulat['learning_rate'] = 0.05
+        param_defulat['learning_rate'] = 0.015
         param_defulat["objective"] = "multiclass"
         param_defulat['n_jobs'] = 12
         param_defulat['metric'] = 'multi_logloss'
