@@ -433,13 +433,13 @@ class PreprocesserGBoost():
 
         for column in categorical_column:
             # e = ce.TargetEncoder()
-            e = LabelEncoder()
+            e = LabelEncoder()z
             if typed == 'test':
                 with open(default_path + f'encoder/label_encoding_{column}', 'rb') as f:
                     e = pickle.load(f)
             else:
                 with open(default_path + f'encoder/label_encoding_{column}', 'wb') as f:
-                    e.fit(df[column].values)
+                    e.fit(label_all_data[column].values)
                     pickle.dump(e, f)
             df[column] = e.transform(df[column].values)
 
