@@ -36,6 +36,7 @@ class StackingKfold():
         params = {}
         with open('./data/params/best_param_catboost', 'rb') as f:
             params = pickle.load(f)
+        params['class_weights'] = {0: 2.7371198,  1: 1.40721238, 2: 0.51974305}
         print(params)
 
         for fold, (train_idx, valid_idx) in enumerate(splits):
@@ -64,6 +65,7 @@ class StackingKfold():
         with open('./data/params/best_param_lgbm', 'rb') as f:
             params = pickle.load(f)
         params['learning_rate'] = 0.25
+        params['class_weight'] = {0: 2.7371198,  1: 1.40721238, 2: 0.51974305}
         print(params)
 
         for fold, (train_idx, valid_idx) in enumerate(splits):
@@ -98,7 +100,8 @@ class StackingKfold():
 
             model = XGBClassifier(**params)
             model.fit(X_train, y_train, eval_set=[(X_train, y_train), (X_valid, y_valid)],
-                      early_stopping_rounds=2500, verbose=False, eval_metric='mlogloss')
+                      early_stopping_rounds=2500, verbose=True, eval_metric='mlogloss',
+                      sample_weight=[2.7371198, 1.40721238, 0.51974305])
 
             xgb_val[valid_idx] = model.predict_proba(X_valid)
             xgb_test += model.predict_proba(self.__X_test) / n_folds
@@ -123,7 +126,7 @@ class StackingKfold():
             y_train, y_valid = self.__y.iloc[train_idx], self.__y.iloc[valid_idx]
 
             model = RandomForestClassifier(**params)
-            model.fit(X_train, y_train)
+            model.fit(X_train, y_train, sample_weight=[2.7371198, 1.40721238, 0.51974305])
 
             rf_val[valid_idx] = model.predict_proba(X_valid)
             rf_test += model.predict_proba(self.__X_test) / n_folds
@@ -134,10 +137,10 @@ class StackingKfold():
         return rf_val, rf_test
 
     def stakcing(self, n_folds):
-        cat_val, cat_test = self.train_catboost(n_folds)
-        lgbm_val, lgbm_test = self.train_lgbm(n_folds)
         xgb_val, xgb_test = self.train_xgb(n_folds)
         rf_val, rf_test = self.train_rf(n_folds)
+        lgbm_val, lgbm_test = self.train_lgbm(n_folds)
+        cat_val, cat_test = self.train_catboost(n_folds)
 
         train_pred = np.concatenate([cat_val, lgbm_val, xgb_val, rf_val], axis=1)
         test_pred = np.concatenate([cat_test, lgbm_test, xgb_test, rf_test], axis=1)
