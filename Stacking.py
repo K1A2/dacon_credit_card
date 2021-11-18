@@ -94,14 +94,20 @@ class StackingKfold():
             params = pickle.load(f)
         print(params)
 
+        classes_weights = [2.7371198, 1.40721238, 0.51974305]
+
         for fold, (train_idx, valid_idx) in enumerate(splits):
             X_train, X_valid = self.__X.iloc[train_idx], self.__X.iloc[valid_idx]
             y_train, y_valid = self.__y.iloc[train_idx], self.__y.iloc[valid_idx]
 
+            weights = np.ones(y_train.shape[0], dtype='float')
+            for i, val in enumerate(y_train):
+                weights[i] = classes_weights[val - 1]
+
             model = XGBClassifier(**params)
             model.fit(X_train, y_train, eval_set=[(X_train, y_train), (X_valid, y_valid)],
                       early_stopping_rounds=2500, verbose=True, eval_metric='mlogloss',
-                      sample_weight=[2.7371198, 1.40721238, 0.51974305])
+                      sample_weight=weights)
 
             xgb_val[valid_idx] = model.predict_proba(X_valid)
             xgb_test += model.predict_proba(self.__X_test) / n_folds
@@ -116,6 +122,8 @@ class StackingKfold():
         rf_val = np.zeros((self.__X.shape[0], 3))
         rf_test = np.zeros((self.__X_test.shape[0], 3))
 
+        classes_weights = [2.7371198, 1.40721238, 0.51974305]
+
         params = {}
         with open('./data/params/best_param_rf', 'rb') as f:
             params = pickle.load(f)
@@ -125,8 +133,12 @@ class StackingKfold():
             X_train, X_valid = self.__X.iloc[train_idx], self.__X.iloc[valid_idx]
             y_train, y_valid = self.__y.iloc[train_idx], self.__y.iloc[valid_idx]
 
+            weights = np.ones(y_train.shape[0], dtype='float')
+            for i, val in enumerate(y_train):
+                weights[i] = classes_weights[val - 1]
+
             model = RandomForestClassifier(**params)
-            model.fit(X_train, y_train, sample_weight=[2.7371198, 1.40721238, 0.51974305])
+            model.fit(X_train, y_train, sample_weight=weights)
 
             rf_val[valid_idx] = model.predict_proba(X_valid)
             rf_test += model.predict_proba(self.__X_test) / n_folds
