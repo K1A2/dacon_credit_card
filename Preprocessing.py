@@ -429,8 +429,10 @@ class PreprocesserGBoost():
 
 
         df = df.drop(['gender', 'work_phone', 'phone', 'email', 'car_reality'] + ['DAYS_BIRTH', 'income_type', 'Education', 'family_type', 'house_type', 'occyp_type', 'begin_month', 'money_relation', 'family_house'], axis=1)
-        for i in ['gender', 'work_phone', 'phone', 'email', 'car_reality'] + ['DAYS_BIRTH', 'income_type', 'Education', 'family_type', 'house_type', 'occyp_type', 'begin_month', 'money_relation', 'family_house']:
+        for i in ['gender', 'work_phone', 'phone', 'email', 'car_reality'] + ['income_type', 'Education', 'family_type', 'house_type', 'occyp_type', 'money_relation', 'family_house']:
             categorical_column.remove(i)
+        for i in ['DAYS_BIRTH', 'begin_month']:
+            numeric_column.remove(i)
 
         print(df.iloc[0,:])
 
