@@ -428,10 +428,10 @@ class PreprocesserGBoost():
 
 
 
-        df = df.drop(['gender', 'work_phone', 'phone', 'email', 'car_reality'] + ['DAYS_BIRTH', 'income_type', 'Education', 'family_type', 'house_type', 'occyp_type', 'begin_month', 'money_relation', 'family_house'], axis=1)
-        for i in ['gender', 'work_phone', 'phone', 'email', 'car_reality'] + ['income_type', 'Education', 'family_type', 'house_type', 'occyp_type', 'money_relation', 'family_house']:
+        df = df.drop(['gender', 'working_day', 'phone', 'make_card_working', 'make_card_birth', 'not_working_day'], axis=1)
+        for i in ['gender', 'phone']:
             categorical_column.remove(i)
-        for i in ['DAYS_BIRTH', 'begin_month']:
+        for i in ['working_day', 'make_card_working', 'make_card_birth', 'not_working_day']:
             numeric_column.remove(i)
 
         print(df.iloc[0,:])
@@ -488,14 +488,14 @@ class PreprocesserGBoost():
         #        'all_income', 'make_card_working', 'make_card_working_y',
         #        'make_card_working_m', 'make_card_birth', 'make_card_birth_y',
         #        'make_card_birth_m']
-        # fullModel = OLS(y, df)
-        # fittedFullModel = fullModel.fit()
-        # print(fittedFullModel.summary())
-        # df = df.drop(['DAYS_BIRTH', 'income_type', 'Education', 'family_type', 'house_type', 'occyp_type', 'begin_month', 'money_relation', 'family_house'], axis=1)
-        # vif = pd.DataFrame()
-        # vif["VIF Factor"] = [variance_inflation_factor(df.values, i) for i in range(df.shape[1])]
-        # vif["features"] = df.columns
-        # print(vif)
+        fullModel = OLS(y, df)
+        fittedFullModel = fullModel.fit()
+        print(fittedFullModel.summary())
+        df = df.drop(['DAYS_BIRTH', 'income_type', 'Education', 'family_type', 'house_type', 'occyp_type', 'begin_month', 'money_relation', 'family_house'], axis=1)
+        vif = pd.DataFrame()
+        vif["VIF Factor"] = [variance_inflation_factor(df.values, i) for i in range(df.shape[1])]
+        vif["features"] = df.columns
+        print(vif)
 
         for i in categorical_column:
             df[i] = df[i].astype(int)
