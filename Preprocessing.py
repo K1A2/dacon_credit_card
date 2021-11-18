@@ -296,14 +296,15 @@ class PreprocesserGBoost():
         from itertools import product
         relation_income_edu_occu = list(product(*[label_all_data['income_type'], label_all_data['Education'],  label_all_data['occyp_type']]))
         relation_gender_occu = list(product(*[label_all_data['gender'], label_all_data['occyp_type']]))
-        relation_family_house = list(product(*[label_all_data['gender'], label_all_data['family_type'], label_all_data['house_type']]))
-        relation_all = list(product(*[label_all_data['gender'], label_all_data['income_type'], label_all_data['Education'],
+        relation_family_house = list(product(*[ label_all_data['family_type'], label_all_data['house_type']]))
+        relation_all = list(product(*[label_all_data['income_type'], label_all_data['Education'],
                                       label_all_data['family_type'], label_all_data['house_type'], label_all_data['occyp_type']]))
         # relation_owner = list(product(*[label_all_data['gender'], label_all_data['income_type'], label_all_data['Education'],
         #                                 label_all_data['family_type'], label_all_data['house_type'], label_all_data['occyp_type'],
         #                                 label_all_data['DAYS_BIRTH']]))
         relation_phone_mail = list(product(*[label_all_data['phone'], label_all_data['work_phone'], label_all_data['email']]))
         relation_occupy_car = list(product(*[label_all_data['occyp_type'], label_all_data['car_reality']]))
+        relation_gender_car = list(product(*[label_all_data['gender'], label_all_data['car_reality']]))
         label_all_data['family_type_same'] = [0,1]
         label_all_data['money_relation'] = [' '.join([str(j) for j in i]) for i in relation_income_edu_occu]
         label_all_data['gneder_occuyp'] = [' '.join([str(j) for j in i]) for i in relation_gender_occu]
@@ -312,6 +313,7 @@ class PreprocesserGBoost():
         # label_all_data['owner'] = [' '.join([str(j) for j in i]) for i in relation_owner]
         label_all_data['phone_mail'] = [' '.join([str(j) for j in i]) for i in relation_phone_mail]
         label_all_data['occuyp_car'] = [' '.join([str(j) for j in i]) for i in relation_occupy_car]
+        label_all_data['gender_reality'] = [' '.join([str(j) for j in i]) for i in relation_gender_car]
 
         # 쓸데없는 데이터 제거
         df = df.drop(['index', 'FLAG_MOBIL'], axis=1)
@@ -322,15 +324,15 @@ class PreprocesserGBoost():
         df = df.fillna('none')
 
         df.loc[:, 'money_relation'] = df['income_type'] + ' ' + df['Education'] + ' ' + df['occyp_type']
-        df.loc[:, 'gneder_occuyp'] = df['gender'] + ' ' + df['occyp_type']
-        df.loc[:, 'family_house'] = df['gender'] + ' ' + df['family_type'] + ' ' + df['house_type']
-        df.loc[:, 'relation_giefho'] = df['gender'] + ' ' + df['income_type'] + ' ' + df['Education'] + ' ' +\
+        # df.loc[:, 'gneder_occuyp'] = df['gender'] + ' ' + df['occyp_type']
+        df.loc[:, 'family_house'] = df['family_type'] + ' ' + df['house_type']
+        df.loc[:, 'relation_giefho'] = df['income_type'] + ' ' + df['Education'] + ' ' +\
                                     df['family_type'] + ' ' + df['house_type'] + ' ' + df['occyp_type']
         # df.loc[:, 'owner'] = df['gender'] + ' ' + df['income_type'] + ' ' + df['Education'] + ' ' +\
         #                     df['family_type'] + ' ' + df['house_type'] + ' ' + df['occyp_type']
         df.loc[:, 'phone_mail'] = df['phone'].astype(str) + ' ' + df['work_phone'].astype(str) + ' ' + df['email'].astype(str)
         df.loc[:, 'occuyp_car'] = df['occyp_type'] + ' ' + df['car_reality'].astype(str)
-
+        df.loc[:, 'gender_reality'] = df['gender'].astype(str) + " " + df['car_reality'].astype(str)
         df.loc[:,'family_type_same'] = 0
         df.loc[(df['family_type'] == 'Married') | (df['family_type'] == 'Civil marriage'), 'family_type_same'] = 1
 
@@ -389,11 +391,9 @@ class PreprocesserGBoost():
                           'Annual_income', 'DAYS_BIRTH', 'working_day', 'begin_month']
         categorical_column = ['money_relation', 'gneder_occuyp', 'family_house', 'relation_giefho', 'family_type_same',
                               'phone_mail', 'occuyp_car', 'gender', 'income_type', 'Education', 'family_type',
-                              'house_type', 'work_phone', 'phone', 'email', 'occyp_type', 'car_reality']
+                              'house_type', 'work_phone', 'phone', 'email', 'occyp_type', 'car_reality', 'gender_reality']
         if typed == 'train':
             categorical_column.append('credit')
-
-
 
         # income = [0, 50000, 100000, 150000, 200000, 250000, 300000, 400000, 600000, 800000]
         # m = 0
@@ -425,6 +425,8 @@ class PreprocesserGBoost():
         df = df.drop(['gender', 'work_phone', 'phone', 'email', 'car_reality'], axis=1)
         for i in ['gender', 'work_phone', 'phone', 'email', 'car_reality']:
             categorical_column.remove(i)
+
+        print(df.iloc[0,:])
 
         if typed == 'train':
             categorical_column.remove('credit')
