@@ -36,7 +36,7 @@ class StackingKfold():
         params = {}
         with open('./data/params/best_param_catboost', 'rb') as f:
             params = pickle.load(f)
-        params['class_weights'] = {0: 2.7371198,  1: 1.40721238, 2: 0.51974305}
+        # params['class_weights'] = {0: 2.7371198,  1: 1.40721238, 2: 0.51974305}
         print(params)
 
         for fold, (train_idx, valid_idx) in enumerate(splits):
@@ -65,7 +65,7 @@ class StackingKfold():
         with open('./data/params/best_param_lgbm', 'rb') as f:
             params = pickle.load(f)
         params['learning_rate'] = 0.25
-        params['class_weight'] = {0: 2.7371198,  1: 1.40721238, 2: 0.51974305}
+        # params['class_weight'] = {0: 2.7371198,  1: 1.40721238, 2: 0.51974305}
         print(params)
 
         for fold, (train_idx, valid_idx) in enumerate(splits):
@@ -106,8 +106,7 @@ class StackingKfold():
 
             model = XGBClassifier(**params)
             model.fit(X_train, y_train, eval_set=[(X_train, y_train), (X_valid, y_valid)],
-                      early_stopping_rounds=2500, verbose=True, eval_metric='mlogloss',
-                      sample_weight=weights)
+                      early_stopping_rounds=2500, verbose=True, eval_metric='mlogloss',)
 
             xgb_val[valid_idx] = model.predict_proba(X_valid)
             xgb_test += model.predict_proba(self.__X_test) / n_folds
@@ -138,7 +137,7 @@ class StackingKfold():
                 weights[i] = classes_weights[val]
 
             model = RandomForestClassifier(**params)
-            model.fit(X_train, y_train, sample_weight=weights)
+            model.fit(X_train, y_train)
 
             rf_val[valid_idx] = model.predict_proba(X_valid)
             rf_test += model.predict_proba(self.__X_test) / n_folds
