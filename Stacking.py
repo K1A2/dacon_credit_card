@@ -148,10 +148,10 @@ class StackingKfold():
         return rf_val, rf_test
 
     def stakcing(self, n_folds):
+        cat_val, cat_test = self.train_catboost(n_folds)
         xgb_val, xgb_test = self.train_xgb(n_folds)
         rf_val, rf_test = self.train_rf(n_folds)
         lgbm_val, lgbm_test = self.train_lgbm(n_folds)
-        cat_val, cat_test = self.train_catboost(n_folds)
 
         train_pred = np.concatenate([cat_val, lgbm_val, xgb_val, rf_val], axis=1)
         test_pred = np.concatenate([cat_test, lgbm_test, xgb_test, rf_test], axis=1)
