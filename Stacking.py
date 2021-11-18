@@ -280,7 +280,9 @@ class StackingKfold():
             param_defulat = pickle.load(f)
         def objective(trial):
             try:
-                folds = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=trial.suggest_int('seed', 0, 10000))
+                seed = trial.suggest_int('seed', 0, 10000)
+                print(trial.number,'번 seed', seed)
+                folds = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=seed)
                 splits = folds.split(self.__X, self.__y)
                 cat_val = np.zeros((self.__X.shape[0], 3))
                 cat_test = np.zeros((self.__X_test.shape[0], 3))
