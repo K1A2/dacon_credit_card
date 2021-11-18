@@ -458,13 +458,13 @@ class PreprocesserGBoost():
                     cat.append(True)
                 else:
                     cat.append(False)
-            over_sampling = SMOTENC(categorical_features=cat, random_state=42)
-            df, y = over_sampling.fit_resample(df, y)
+            # over_sampling = SMOTENC(categorical_features=cat, random_state=42)
+            # df, y = over_sampling.fit_resample(df, y)
 
         for n in numeric_column:
             df[n] = np.floor(df[n].values).astype(int)
 
-        df[numeric_column] = z_score_nomalizer(typed, df[numeric_column])
+        # df[numeric_column] = z_score_nomalizer(typed, df[numeric_column])
         # df = df.drop(['DAYS_BIRTH', 'working_day', 'begin_month', 'not_working_day', 'Annual_income'], axis=1)
 
         # if typed == 'train':
