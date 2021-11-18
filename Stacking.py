@@ -102,7 +102,7 @@ class StackingKfold():
 
             weights = np.ones(y_train.shape[0], dtype='float')
             for i, val in enumerate(y_train):
-                weights[i] = classes_weights[val - 1]
+                weights[i] = classes_weights[val]
 
             model = XGBClassifier(**params)
             model.fit(X_train, y_train, eval_set=[(X_train, y_train), (X_valid, y_valid)],
@@ -135,7 +135,7 @@ class StackingKfold():
 
             weights = np.ones(y_train.shape[0], dtype='float')
             for i, val in enumerate(y_train):
-                weights[i] = classes_weights[val - 1]
+                weights[i] = classes_weights[val]
 
             model = RandomForestClassifier(**params)
             model.fit(X_train, y_train, sample_weight=weights)
