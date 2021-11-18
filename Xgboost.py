@@ -141,7 +141,7 @@ def only_catbooost():
     stacking.stakcing(18)
     stacking.stacking_last(18)
 
-    # stacking.r(18, 100)
+    stacking.r(18, 100)
 
 def tuning(X, y, categorical_columns):
     tunner = ParamTuning.Tuner(X, y, categorical_columns)

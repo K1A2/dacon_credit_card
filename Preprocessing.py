@@ -8,6 +8,8 @@ from imblearn.under_sampling import TomekLinks
 from imblearn.over_sampling import SMOTENC
 from sklearn.model_selection import train_test_split
 import category_encoders as ce
+from statsmodels.stats.outliers_influence import variance_inflation_factor
+from statsmodels.regression.linear_model import OLS
 
 '''
 gender random_under {'F', 'M'}
@@ -398,6 +400,7 @@ class PreprocesserGBoost():
         if typed == 'train':
             categorical_column.append('credit')
 
+
         # income = [0, 50000, 100000, 150000, 200000, 250000, 300000, 400000, 600000, 800000]
         # m = 0
         # for i in income:
@@ -425,8 +428,8 @@ class PreprocesserGBoost():
 
 
 
-        df = df.drop(['gender', 'work_phone', 'phone', 'email', 'car_reality'], axis=1)
-        for i in ['gender', 'work_phone', 'phone', 'email', 'car_reality']:
+        df = df.drop(['gender', 'work_phone', 'phone', 'email', 'car_reality'] + ['DAYS_BIRTH', 'income_type', 'Education', 'family_type', 'house_type', 'occyp_type', 'begin_month', 'money_relation', 'family_house'], axis=1)
+        for i in ['gender', 'work_phone', 'phone', 'email', 'car_reality'] + ['DAYS_BIRTH', 'income_type', 'Education', 'family_type', 'house_type', 'occyp_type', 'begin_month', 'money_relation', 'family_house']:
             categorical_column.remove(i)
 
         print(df.iloc[0,:])
@@ -473,6 +476,24 @@ class PreprocesserGBoost():
         # for c in numeric_column:
         #     sns.histplot(x=df[c])
         #     plt.show()
+
+        # ['Annual_income', 'income_type', 'Education', 'family_type',
+        #        'house_type', 'DAYS_BIRTH', 'working_day', 'occyp_type', 'begin_month',
+        #        'money_relation', 'family_house', 'relation_giefho', 'phone_mail',
+        #        'occuyp_car', 'gender_reality', 'family_type_same', 'not_working_day',
+        #        'age_y', 'age_m', 'age_w', 'working_y', 'working_m', 'working_w',
+        #        'not_working_y', 'not_working_m', 'not_working_w', 'begin_y', 'begin_m',
+        #        'all_income', 'make_card_working', 'make_card_working_y',
+        #        'make_card_working_m', 'make_card_birth', 'make_card_birth_y',
+        #        'make_card_birth_m']
+        # fullModel = OLS(y, df)
+        # fittedFullModel = fullModel.fit()
+        # print(fittedFullModel.summary())
+        # df = df.drop(['DAYS_BIRTH', 'income_type', 'Education', 'family_type', 'house_type', 'occyp_type', 'begin_month', 'money_relation', 'family_house'], axis=1)
+        # vif = pd.DataFrame()
+        # vif["VIF Factor"] = [variance_inflation_factor(df.values, i) for i in range(df.shape[1])]
+        # vif["features"] = df.columns
+        # print(vif)
 
         for i in categorical_column:
             df[i] = df[i].astype(int)
