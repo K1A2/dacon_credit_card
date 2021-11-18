@@ -7,6 +7,7 @@ import pickle
 from imblearn.under_sampling import TomekLinks
 from imblearn.over_sampling import SMOTENC
 from sklearn.model_selection import train_test_split
+import category_encoders as ce
 
 '''
 gender random_under {'F', 'M'}
@@ -425,46 +426,37 @@ class PreprocesserGBoost():
         for i in ['gender', 'work_phone', 'phone', 'email', 'car_reality']:
             categorical_column.remove(i)
 
-
+        if typed == 'train':
+            categorical_column.remove('credit')
+            y = df[['credit']].astype(int)
+            df = df.drop(['credit'], axis=1)
 
         for column in categorical_column:
-            e = LabelEncoder()
+            e = ce.TargetEncoder()
             if typed == 'test':
                 with open(default_path + f'encoder/label_encoding_{column}', 'rb') as f:
                     e = pickle.load(f)
             else:
                 with open(default_path + f'encoder/label_encoding_{column}', 'wb') as f:
-                    e.fit(label_all_data[column])
+                    e.fit(label_all_data[column], y)
                     pickle.dump(e, f)
             df[column] = e.transform(df[column])
-            # mean_encode = 0
-            # if typed == 'test':
-            #     with open(default_path + f'encoder/label_encoding_{column}', 'rb') as f:
-            #         mean_encode = pickle.load(f)
-            # else:
-            #     with open(default_path + f'encoder/label_encoding_{column}', 'wb') as f:
-            #         mean_encode = df.groupby(column)['credit'].mean()
-            #         pickle.dump(mean_encode, f)
-            # df[column] = df[column].map(mean_encode)
 
         # categorical_column += ['income_cat', 'age_cat']
 
-        if typed == 'train':
-            y = df[['credit']].astype(int)
-            df = df.drop(['credit'], axis=1)
-            cat = []
-            for c in df.columns:
-                if c in categorical_column:
-                    cat.append(True)
-                else:
-                    cat.append(False)
+            # cat = []
+            # for c in df.columns:
+            #     if c in categorical_column:
+            #         cat.append(True)
+            #     else:
+            #         cat.append(False)
             # over_sampling = SMOTENC(categorical_features=cat, random_state=42)
             # df, y = over_sampling.fit_resample(df, y)
 
         for n in numeric_column:
             df[n] = np.floor(df[n].values).astype(int)
 
-        # df[numeric_column] = z_score_nomalizer(typed, df[numeric_column])
+        df[numeric_column] = z_score_nomalizer(typed, df[numeric_column])
         # df = df.drop(['DAYS_BIRTH', 'working_day', 'begin_month', 'not_working_day', 'Annual_income'], axis=1)
 
         # if typed == 'train':
@@ -476,15 +468,11 @@ class PreprocesserGBoost():
         #     sns.histplot(x=df[c])
         #     plt.show()
 
-        if typed == 'train':
-            categorical_column.remove('credit')
-
         for i in categorical_column:
             df[i] = df[i].astype(int)
 
         print(df.iloc[0,:])
         print(df.shape)
-        print()
         if typed == 'train':
             return df, y, numeric_column, categorical_column
         else:
