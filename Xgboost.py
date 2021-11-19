@@ -131,16 +131,16 @@ def only_catbooost():
     print(categorical_columns)
     # for i in range(10, 26):
     #     train_catboost(X, y, X_submmit, i)
-    tuning(X, y, categorical_columns)
+    # tuning(X, y, categorical_columns)
 
-    # stacking = Stacking.StackingKfold(X, y, X_submmit, categorical_columns)
+    stacking = Stacking.StackingKfold(X, y, X_submmit, categorical_columns)
     # best_param_lgbm = stacking.tuning_lgbm_stack(100, 13)
     # print(best_param_lgbm)
     # with open('./data/params/best_param_lgbm_stacked', 'wb') as f:
     #     pickle.dump(best_param_lgbm, f)
 
-    # stacking.stakcing(18)
-    # stacking.stacking_last(18)
+    stacking.stakcing(18)
+    stacking.stacking_last(18)
     #
     # stacking.r(18, 100)
 
@@ -157,15 +157,30 @@ def tuning(X, y, categorical_columns):
     # with open('./data/params/best_param_lgbm', 'wb') as f:
     #     pickle.dump(best_param_lgbm, f)
 
-    best_param_xgb = tunner.tuning_xgboost(n_trials=150)
-    print(best_param_xgb)
-    with open('./data/params/best_param_xgb', 'wb') as f:
-        pickle.dump(best_param_xgb, f)
+    # best_param_xgb = tunner.tuning_xgboost(n_trials=150)
+    # print(best_param_xgb)
+    # with open('./data/params/best_param_xgb', 'wb') as f:
+    #     pickle.dump(best_param_xgb, f)
 
     best_param_catboost = tunner.tuning_catboost(n_trials=100)
     print(best_param_catboost)
     with open('./data/params/best_param_catboost', 'wb') as f:
         pickle.dump(best_param_catboost, f)
+
+    # {
+    #     depth: 8
+    #     grow_policy: SymmetricTree
+    #     bootstrap_type: Bernoulli
+    #     l2_leaf_reg: 16
+    #     subsample: 0.6047630272881672
+    #     boosting_type: Plain
+    #     objective: MultiClass
+    #     iterations: 80000
+    #     allow_writing_files: False
+    #     learning_rate: 0.015
+    #     task_type: CPU
+    #     random_state: 1234
+    # }
 
 def main():
     # auto_encoder()

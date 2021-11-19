@@ -41,6 +41,7 @@ class StackingKfold():
         print(params)
 
         for fold, (train_idx, valid_idx) in enumerate(splits):
+            print(f"-----------Catboost {fold}번-----------")
             X_train, X_valid = self.__X.iloc[train_idx], self.__X.iloc[valid_idx]
             y_train, y_valid = self.__y.iloc[train_idx], self.__y.iloc[valid_idx]
             train_data = Pool(data=X_train, label=y_train, cat_features=self.__categorical_columns)
@@ -70,6 +71,7 @@ class StackingKfold():
         print(params)
 
         for fold, (train_idx, valid_idx) in enumerate(splits):
+            print(f"-----------LGBM {fold}번-----------")
             X_train, X_valid = self.__X.iloc[train_idx], self.__X.iloc[valid_idx]
             y_train, y_valid = self.__y.iloc[train_idx], self.__y.iloc[valid_idx]
 
@@ -98,6 +100,7 @@ class StackingKfold():
         classes_weights = [2.7371198, 1.40721238, 0.51974305]
 
         for fold, (train_idx, valid_idx) in enumerate(splits):
+            print(f"-----------XGB {fold}번-----------")
             X_train, X_valid = self.__X.iloc[train_idx], self.__X.iloc[valid_idx]
             y_train, y_valid = self.__y.iloc[train_idx], self.__y.iloc[valid_idx]
 
@@ -130,6 +133,7 @@ class StackingKfold():
         print(params)
 
         for fold, (train_idx, valid_idx) in enumerate(splits):
+            print(f"-----------RandomForest {fold}번-----------")
             X_train, X_valid = self.__X.iloc[train_idx], self.__X.iloc[valid_idx]
             y_train, y_valid = self.__y.iloc[train_idx], self.__y.iloc[valid_idx]
 
@@ -182,6 +186,7 @@ class StackingKfold():
         stack_val = np.zeros((stacking_train.shape[0], 3))
         stack_test = np.zeros((stacking_test.shape[0], 3))
         for fold, (train_idx, valid_idx) in enumerate(folds.split(stacking_train, self.__y), 1):
+            print(f"-----------Stacked LGBM {fold}번-----------")
             X_train, X_valid = stacking_train[train_idx], stacking_train[valid_idx]
             y_train, y_valid = self.__y.iloc[train_idx], self.__y.iloc[valid_idx]
 
