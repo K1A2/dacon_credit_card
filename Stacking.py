@@ -4,7 +4,7 @@ from sklearn.model_selection import GridSearchCV
 from catboost import CatBoostClassifier, Pool
 from lightgbm import LGBMClassifier
 from lightgbm.callback import early_stopping, log_evaluation
-from xgboost import XGBClassifier
+from xgboost import XGBClassifier, DMatrix
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 from sklearn.tree import DecisionTreeClassifier
 
@@ -13,7 +13,7 @@ import pandas as pd
 import numpy as np
 from tensorflow.keras.utils import to_categorical
 from sklearn.metrics import log_loss
-
+import copy
 import pickle
 
 class StackingKfold():
@@ -22,17 +22,29 @@ class StackingKfold():
     __X_test:pd.DataFrame = None
     __categorical_columns = None
 
+    __X_cat:pd.DataFrame = None
+    __y_cat:pd.DataFrame = None
+    __X_test_cat:pd.DataFrame = None
+    __categorical_columns_cat = None
+
     def __init__(self, X, y, X_test, categorical_columns):
-        self.__X = X
+        self.__X = X.drop(['Owner'], axis=1)
         self.__y = y
-        self.__X_test = X_test
-        self.__categorical_columns = categorical_columns
+        self.__X_test = X_test.drop(['Owner'], axis=1)
+        self.__categorical_columns = copy.deepcopy(categorical_columns)
+        self.__categorical_columns.remove('Owner')
+
+        self.__X_cat = X.drop(['Owner_r'], axis=1)
+        self.__y_cat = y
+        self.__X_test_cat = X_test.drop(['Owner_r'], axis=1)
+        self.__categorical_columns_cat = copy.deepcopy(categorical_columns)
+        self.__categorical_columns_cat.remove('Owner_r')
 
     def train_catboost(self, n_folds):
         folds = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=4558)
-        splits = folds.split(self.__X, self.__y)
-        cat_val = np.zeros((self.__X.shape[0], 3))
-        cat_test = np.zeros((self.__X_test.shape[0], 3))
+        splits = folds.split(self.__X_cat, self.__y_cat)
+        cat_val = np.zeros((self.__X_cat.shape[0], 3))
+        cat_test = np.zeros((self.__X_test_cat.shape[0], 3))
 
         params = {}
         with open('./data/params/best_param_catboost', 'rb') as f:
@@ -43,10 +55,10 @@ class StackingKfold():
 
         for fold, (train_idx, valid_idx) in enumerate(splits):
             print(f"-----------Catboost {fold}번-----------")
-            X_train, X_valid = self.__X.iloc[train_idx], self.__X.iloc[valid_idx]
-            y_train, y_valid = self.__y.iloc[train_idx], self.__y.iloc[valid_idx]
-            train_data = Pool(data=X_train, label=y_train, cat_features=self.__categorical_columns)
-            valid_data = Pool(data=X_valid, label=y_valid, cat_features=self.__categorical_columns)
+            X_train, X_valid = self.__X_cat.iloc[train_idx], self.__X_cat.iloc[valid_idx]
+            y_train, y_valid = self.__y_cat.iloc[train_idx], self.__y_cat.iloc[valid_idx]
+            train_data = Pool(data=X_train, label=y_train, cat_features=self.__categorical_columns_cat)
+            valid_data = Pool(data=X_valid, label=y_valid, cat_features=self.__categorical_columns_cat)
 
             # model = CatBoostClassifier(**params)
             model = CatBoostClassifier(n_estimators=10000)
@@ -54,9 +66,9 @@ class StackingKfold():
             model.fit(train_data, eval_set=valid_data, early_stopping_rounds=100, verbose=50, use_best_model=True)
 
             cat_val[valid_idx] = model.predict_proba(X_valid)
-            cat_test += model.predict_proba(self.__X_test) / n_folds
+            cat_test += model.predict_proba(self.__X_test_cat) / n_folds
 
-        log_score = log_loss(self.__y, cat_val)
+        log_score = log_loss(self.__y_cat, cat_val)
         print(f"Catboost Log Loss Score: {log_score:.5f}\n")
         return cat_val, cat_test
 
@@ -112,8 +124,10 @@ class StackingKfold():
                 weights[i] = classes_weights[val]
 
             model = XGBClassifier(**params)
+            train_data = DMatrix(X_train, y_train, enable_categorical=True)
+            test_data = DMatrix(X_valid, y_valid, enable_categorical=True)
             model.fit(X_train, y_train, eval_set=[(X_train, y_train), (X_valid, y_valid)],
-                      early_stopping_rounds=500, verbose=True, eval_metric='mlogloss',)
+                      early_stopping_rounds=100, verbose=True, eval_metric='mlogloss')
 
             xgb_val[valid_idx] = model.predict_proba(X_valid)
             xgb_test += model.predict_proba(self.__X_test) / n_folds

@@ -1,5 +1,5 @@
 import pickle
-# import Stacking
+import Stacking
 import category_encoders as ce
 
 import pandas as pd
@@ -137,8 +137,6 @@ for i in work_range:
     test_data.loc[test_data['working_day'] >= i, 'working_day_r'] = cnt
     cnt += 1
 
-from itertools import product
-
 train_data['Owner'] = ''
 test_data['Owner'] = ''
 for col in ['gender','Annual_income','income_type','Education','family_type','house_type','DAYS_BIRTH','working_day','work_phone','phone','email','occyp_type','car_reality']:
@@ -147,14 +145,29 @@ for col in ['gender','Annual_income','income_type','Education','family_type','ho
 
 train_data['Owner_r'] = ''
 test_data['Owner_r'] = ''
-for col in ['gender','Annual_income_r','income_type','Education','family_type','house_type','DAYS_BIRTH_r','working_day_r','work_phone','phone','email','occyp_type','car_reality']:
+all_l = []
+for col in ['gender','income_type','Education','family_type','house_type','work_phone','phone','email','occyp_type','car_reality']:
     train_data['Owner_r'] = train_data['Owner_r']+ train_data[col].astype(int).astype(str)
     test_data['Owner_r'] = test_data['Owner_r'] + test_data[col].astype(int).astype(str)
+    all_l.append([i for i in range(len(train_data[col].unique().tolist()))])
 
 train_data['Owner'] = train_data['Owner'].astype(str)
 test_data['Owner'] = test_data['Owner'].astype(str)
 train_data['Owner_r'] = train_data['Owner_r'].astype(str)
 test_data['Owner_r'] = test_data['Owner_r'].astype(str)
+
+from itertools import product
+all_l = list(product(*all_l))
+for i in range(len(all_l)):
+    all_l[i] = ''.join([str(j) for j in all_l[i]])
+
+e = LabelEncoder()
+e.fit(all_l)
+train_data['Owner_r'] = e.transform(train_data['Owner_r'])
+test_data['Owner_r'] = e.transform(test_data['Owner_r'])
+
+cate_col.append('Owner')
+cate_col.append('Owner_r')
 
 print(train_data.head(10))
 
@@ -171,9 +184,9 @@ print(test_data.columns.tolist())
 
 
 
-# stacking = Stacking.StackingKfold(train_data, train_data_y, test_data, cate_col)
-# stacking.stakcing(15)
-# stacking.stacking_last(15)
+stacking = Stacking.StackingKfold(train_data, train_data_y, test_data, cate_col)
+stacking.stakcing(15)
+stacking.stacking_last(15)
 
 
 

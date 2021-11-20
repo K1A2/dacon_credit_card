@@ -21,17 +21,32 @@ class Tuner():
     __valid_y:pd.DataFrame = None
     __categorical_columns = None
 
+    __train_x_cat:pd.DataFrame = None
+    __train_y_cat:pd.DataFrame = None
+    __valid_x_cat:pd.DataFrame = None
+    __valid_y_cat:pd.DataFrame = None
+    __categorical_columns_cat = None
+
     def __init__(self, X:pd.DataFrame, y:pd.DataFrame, categorical_columns):
+        norm_x = X.drop(['Owner'], index=1)
         self.__train_x, self.__valid_x,self.__train_y, self.__valid_y =\
-            train_test_split(X, y, test_size=0.2, stratify=y, random_state=678988)
+            train_test_split(norm_x, y, test_size=0.2, stratify=y, random_state=678988)
+
+        x_cat = X.drop(['Owner_r'], index=1)
+        self.__train_x_cat, self.__valid_x_cat,self.__train_y_cat, self.__valid_y_cat =\
+            train_test_split(x_cat, y, test_size=0.2, stratify=y, random_state=678988)
+
         self.__categorical_columns = categorical_columns
+        self.__categorical_columns.remove('Owner')
+        self.__categorical_columns_cat = categorical_columns
+        self.__categorical_columns_cat.remove('Owner_r')
 
     def tuning_catboost(self, n_trials):
-        categorical_columns = self.__categorical_columns
-        train_x = self.__train_x
-        train_y = self.__train_y
-        valid_x = self.__valid_x
-        valid_y = self.__valid_y
+        categorical_columns = self.__categorical_columns_cat
+        train_x = self.__train_x_cat
+        train_y = self.__train_y_cat
+        valid_x = self.__valid_x_cat
+        valid_y = self.__valid_y_cat
 
         param_defulat = {}
         param_defulat['objective'] = 'MultiClass'
