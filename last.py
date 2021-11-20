@@ -1,5 +1,5 @@
 import pickle
-import Stacking
+# import Stacking
 import category_encoders as ce
 
 import pandas as pd
@@ -8,7 +8,7 @@ from sklearn.preprocessing import LabelEncoder,StandardScaler
 from sklearn.metrics import log_loss
 from sklearn.model_selection import StratifiedKFold
 from catboost import CatBoostClassifier,Pool
-import ParamTuning
+# import ParamTuning
 pd.set_option('display.max_columns', None)
 
 #Data
@@ -141,31 +141,20 @@ from itertools import product
 
 train_data['Owner'] = ''
 test_data['Owner'] = ''
-all_list = []
 for col in ['gender','Annual_income','income_type','Education','family_type','house_type','DAYS_BIRTH','working_day','work_phone','phone','email','occyp_type','car_reality']:
     train_data['Owner'] = train_data['Owner']+ train_data[col].astype(int).astype(str)
     test_data['Owner'] = test_data['Owner'] + test_data[col].astype(int).astype(str)
+
+train_data['Owner_r'] = ''
+test_data['Owner_r'] = ''
 for col in ['gender','Annual_income_r','income_type','Education','family_type','house_type','DAYS_BIRTH_r','working_day_r','work_phone','phone','email','occyp_type','car_reality']:
-    all_list.append([i for i in range(len(train_data[col].unique().tolist()))])
+    train_data['Owner_r'] = train_data['Owner_r']+ train_data[col].astype(int).astype(str)
+    test_data['Owner_r'] = test_data['Owner_r'] + test_data[col].astype(int).astype(str)
+
 train_data['Owner'] = train_data['Owner'].astype(str)
 test_data['Owner'] = test_data['Owner'].astype(str)
-cate_col.append('Owner')
-all_list = list(product(*all_list))
-print(all_list)
-for i in range(len(all_list)):
-    all_list[i] = ''.join([str(j) for j in all_list[i]])
-print(all_list[0])
-with open('./data/all_label', 'wb') as f:
-    pickle.dump(all_list, f)
-exit(0)
-# with open('./data/params/best_param_lgbm_stacked', 'rb') as f:
-#     params = pickle.load(f)
-# print(params)
-
-en = LabelEncoder()
-en.fit(all_list)
-train_data['Owner'] = en.transform(train_data['Owner'])
-test_data['Owner'] = en.transform(test_data['Owner'])
+train_data['Owner_r'] = train_data['Owner_r'].astype(str)
+test_data['Owner_r'] = test_data['Owner_r'].astype(str)
 
 print(train_data.head(10))
 
@@ -194,38 +183,38 @@ print(test_data.columns.tolist())
 # with open('./data/params/last_catboost_param', 'wb') as f:
 #     pickle.dump(param, f)
 
-loss_list = []
-pred = []
-for i in [15]:
-    n_split = i
-    sk_fold = StratifiedKFold(n_splits=n_split, shuffle=True, random_state=4558)
-    t_model = 0
-    cnt = 0
-    loss_sum = []
-    fin_pred = []
-    for train_idx, test_idx in sk_fold.split(X=train_data, y=train_data_y):
-        cnt += 1
-        x_train, x_val = train_data.loc[train_idx], train_data.loc[test_idx]
-        y_train, y_val = train_data_y[train_idx], train_data_y[test_idx]
-        x_test = test_data.copy()
-
-        model = CatBoostClassifier(n_estimators=10000)
-        train_pool = Pool(x_train, y_train, cat_features=cate_col)
-        val_pool = Pool(x_val, y_val, cat_features=cate_col)
-        model.fit(train_pool, eval_set=val_pool, early_stopping_rounds=100, verbose=50, use_best_model=True)
-        t_model = model
-        pred_test = model.predict_proba(x_val)
-        pred.append(model.predict_proba(x_test))
-        score = log_loss(y_val, pred_test)
-        print(f"{cnt} : logloss {score}")
-        loss_sum.append(score)
-
-    print(f"mean log loss {sum(loss_sum) / n_split}")
-    loss_list.append(sum(loss_sum) / n_split)
-
-print(loss_list)
-
-fin_pred = np.asarray(pred).sum(axis=0)
-fin_pred /= 15
-output = pd.concat((sample_submission_csv['index'], pd.DataFrame(fin_pred, columns=[0, 1, 2])), axis=1)
-output.to_csv(f'./data/{loss_list[0]}_catboost.csv', index=False)
+# loss_list = []
+# pred = []
+# for i in [15]:
+#     n_split = i
+#     sk_fold = StratifiedKFold(n_splits=n_split, shuffle=True, random_state=4558)
+#     t_model = 0
+#     cnt = 0
+#     loss_sum = []
+#     fin_pred = []
+#     for train_idx, test_idx in sk_fold.split(X=train_data, y=train_data_y):
+#         cnt += 1
+#         x_train, x_val = train_data.loc[train_idx], train_data.loc[test_idx]
+#         y_train, y_val = train_data_y[train_idx], train_data_y[test_idx]
+#         x_test = test_data.copy()
+#
+#         model = CatBoostClassifier(n_estimators=10000)
+#         train_pool = Pool(x_train, y_train, cat_features=cate_col)
+#         val_pool = Pool(x_val, y_val, cat_features=cate_col)
+#         model.fit(train_pool, eval_set=val_pool, early_stopping_rounds=100, verbose=50, use_best_model=True)
+#         t_model = model
+#         pred_test = model.predict_proba(x_val)
+#         pred.append(model.predict_proba(x_test))
+#         score = log_loss(y_val, pred_test)
+#         print(f"{cnt} : logloss {score}")
+#         loss_sum.append(score)
+#
+#     print(f"mean log loss {sum(loss_sum) / n_split}")
+#     loss_list.append(sum(loss_sum) / n_split)
+#
+# print(loss_list)
+#
+# fin_pred = np.asarray(pred).sum(axis=0)
+# fin_pred /= 15
+# output = pd.concat((sample_submission_csv['index'], pd.DataFrame(fin_pred, columns=[0, 1, 2])), axis=1)
+# output.to_csv(f'./data/{loss_list[0]}_catboost.csv', index=False)
