@@ -21,7 +21,7 @@ def train_catboost(X, y, X_submmit, params, n_splits, categorical):
         train_data = Pool(X_train, y_train, cat_features=categorical)
         test_data = Pool(X_val, y_val, cat_features=categorical)
 
-        clf = CatBoostClassifier(**params)
+        clf = CatBoostClassifier(allow_writing_files=False)
         clf.fit(train_data, eval_set=test_data, early_stopping_rounds=5000, verbose=1000)
 
         predictions = clf.predict_proba(X_val)
@@ -38,7 +38,7 @@ def train_catboost(X, y, X_submmit, params, n_splits, categorical):
 
     submission = pd.read_csv('./data/sample_submission.csv')
     submission.loc[:, 1:] = my_submission
-    submission.to_csv(f'./data/submission/kfold_5/{n_splits}_{mean_outcome}_xgboost.csv', index=False)
+    submission.to_csv(f'./data/submission/kfold_6/{n_splits}_{mean_outcome}_xgboost.csv', index=False)
 
 def train_catboost_one(X, y, X_submmit, params):
     X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, stratify=y, random_state=678988)
@@ -65,14 +65,13 @@ def main():
     # df = df.drop_duplicates(df.columns)
 
     # 클래스 분리
-    y = df.loc[:, ['credit']]
+    # y = df.loc[:, ['credit']]
     # df = df.drop(['credit'], axis=1)
 
     # 데이터 전처리
-    X, numerical_columns, categorical_columns = preprocesser.data_preprocess_2_comb(df.drop_duplicates(), 'train')
+    X, y, numerical_columns, categorical_columns = preprocesser.data_preprocess_2_comb(df.drop_duplicates(), 'train')
     X_submmit, numerical_submmit, categorical_submmit = preprocesser.data_preprocess_2_comb(df_test, 'test')
 
-    y = y.loc[X.index, :]
     X = X.reset_index()
     X = X.drop(['index'], axis=1)
     y = y.reset_index()

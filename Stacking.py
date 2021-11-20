@@ -5,7 +5,8 @@ from catboost import CatBoostClassifier, Pool
 from lightgbm import LGBMClassifier
 from lightgbm.callback import early_stopping, log_evaluation
 from xgboost import XGBClassifier
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
+from sklearn.tree import DecisionTreeClassifier
 
 from sklearn.model_selection import StratifiedKFold
 import pandas as pd
@@ -47,8 +48,10 @@ class StackingKfold():
             train_data = Pool(data=X_train, label=y_train, cat_features=self.__categorical_columns)
             valid_data = Pool(data=X_valid, label=y_valid, cat_features=self.__categorical_columns)
 
-            model = CatBoostClassifier(**params)
-            model.fit(train_data, eval_set=valid_data, early_stopping_rounds=5000, verbose=5000, use_best_model=True)
+            # model = CatBoostClassifier(**params)
+            model = CatBoostClassifier(n_estimators=10000)
+            # model.fit(train_data, eval_set=valid_data, early_stopping_rounds=5000, verbose=5000, use_best_model=True)
+            model.fit(train_data, eval_set=valid_data, early_stopping_rounds=100, verbose=50, use_best_model=True)
 
             cat_val[valid_idx] = model.predict_proba(X_valid)
             cat_test += model.predict_proba(self.__X_test) / n_folds
@@ -77,7 +80,7 @@ class StackingKfold():
 
             model = LGBMClassifier(**params)
             model.fit(X_train, y_train, eval_set=[(X_train, y_train), (X_valid, y_valid)],
-                         callbacks=[early_stopping(stopping_rounds=5000), log_evaluation(period=5000)])
+                         callbacks=[early_stopping(stopping_rounds=100), log_evaluation(period=50)])
 
             lgbm_val[valid_idx] = model.predict_proba(X_valid)
             lgbm_test += model.predict_proba(self.__X_test) / n_folds
@@ -110,7 +113,7 @@ class StackingKfold():
 
             model = XGBClassifier(**params)
             model.fit(X_train, y_train, eval_set=[(X_train, y_train), (X_valid, y_valid)],
-                      early_stopping_rounds=2500, verbose=True, eval_metric='mlogloss',)
+                      early_stopping_rounds=500, verbose=True, eval_metric='mlogloss',)
 
             xgb_val[valid_idx] = model.predict_proba(X_valid)
             xgb_test += model.predict_proba(self.__X_test) / n_folds
@@ -152,7 +155,37 @@ class StackingKfold():
         print(f"RandomForest Log Loss Score: {log_score:.5f}\n")
         return rf_val, rf_test
 
+    def train_ada(self, n_folds):
+        folds = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=4558)
+        splits = folds.split(self.__X, self.__y)
+        ada_val = np.zeros((self.__X.shape[0], 3))
+        ada_test = np.zeros((self.__X_test.shape[0], 3))
+
+        params = {}
+        with open('./data/params/best_param_ada', 'rb') as f:
+            params = pickle.load(f)
+        print(params)
+        params['base_estimator'] = DecisionTreeClassifier(max_depth=params['max_depth'])
+        del params['max_depth']
+
+        for fold, (train_idx, valid_idx) in enumerate(splits):
+            print(f"-----------AdaBoost {fold}번-----------")
+            X_train, X_valid = self.__X.iloc[train_idx], self.__X.iloc[valid_idx]
+            y_train, y_valid = self.__y.iloc[train_idx], self.__y.iloc[valid_idx]
+
+            model = AdaBoostClassifier(**params)
+            model.fit(X_train, y_train)
+
+            ada_val[valid_idx] = model.predict_proba(X_valid)
+            ada_test += model.predict_proba(self.__X_test) / n_folds
+            print(f"Log Loss Score: {log_loss(y_valid, ada_val[valid_idx]):.5f}")
+
+        log_score = log_loss(self.__y, ada_val)
+        print(f"RandomForest Log Loss Score: {log_score:.5f}\n")
+        return ada_val, ada_test
+
     def stakcing(self, n_folds):
+        # ada_val, ada_test = self.train_ada(n_folds)
         cat_val, cat_test = self.train_catboost(n_folds)
         xgb_val, xgb_test = self.train_xgb(n_folds)
         rf_val, rf_test = self.train_rf(n_folds)
@@ -192,7 +225,7 @@ class StackingKfold():
 
             model = LGBMClassifier(**params)
             model.fit(X_train, y_train, eval_set=[(X_train, y_train), (X_valid, y_valid)],
-                      callbacks=[early_stopping(stopping_rounds=10000), log_evaluation(period=5000)])
+                      callbacks=[early_stopping(stopping_rounds=100), log_evaluation(period=100)])
 
             stack_val[valid_idx, :] = model.predict_proba(stacking_train[valid_idx])
             stack_test += model.predict_proba(stacking_test) / n_folds
@@ -202,6 +235,16 @@ class StackingKfold():
         submission = pd.read_csv('./data/sample_submission.csv')
         submission.loc[:, 1:] = stack_test
         submission.to_csv(f'./data/submission/stacking_{n_folds}_{loss}_xgboost.csv', index=False)
+
+        # import Tocken
+        # from dacon_submit_api import dacon_submit_api
+        # submission.to_csv(f'./data/submission/stacking_xgboost.csv', index=False)
+        # result = dacon_submit_api.post_submission_file(
+        #     './data/submission/stacking_xgboost.csv',
+        #     Tocken.token,
+        #     '235832',
+        #     'K1A2',
+        #     f'stack_{loss}_{n_folds}')
 
     def tuning_lgbm_stack(self, n_trials, n_folds):
         stacking_train = None
@@ -253,7 +296,7 @@ class StackingKfold():
 
                     model = LGBMClassifier(**param)
                     model.fit(X_train, y_train, eval_set=[(X_train, y_train), (X_valid, y_valid)],
-                              callbacks=[early_stopping(stopping_rounds=10000)])
+                              callbacks=[early_stopping(stopping_rounds=100), log_evaluation(period=1500)])
 
                     stack_val[valid_idx, :] = model.predict_proba(stacking_train[valid_idx])
                     stack_test += model.predict_proba(stacking_test) / n_folds

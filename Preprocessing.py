@@ -34,7 +34,7 @@ label_all_data = {'gender': ['F', 'M'],
                     'family_type': ['Married', 'Single / not married', 'Civil marriage', 'Separated', 'Widow'],
                     'house_type': ['House / apartment', 'With parents', 'Municipal apartment', 'Rented apartment',
                                    'Office apartment', 'Co-op apartment'],
-                    'occyp_type': ['none', 'Laborers', 'Core staff', 'Sales staff', 'Managers', 'Drivers',
+                    'occyp_type': ['nan', 'none', 'Laborers', 'Core staff', 'Sales staff', 'Managers', 'Drivers',
                                    'High skill tech staff', 'Accountants', 'Medicine staff', 'Cooking staff',
                                    'Security staff', 'Cleaning staff', 'Private service staff', 'Low-skill Laborers',
                                    'Waiters/barmen staff', 'Secretaries', 'Realty agents', 'HR staff', 'IT staff'],
@@ -324,6 +324,7 @@ class PreprocesserGBoost():
                               'work_phone', 'phone', 'email', 'occyp_type', 'car_reality']
 
         df = df.fillna('none')
+        df.loc[(df['occyp_type'] == 'none') & (df['working_day'] >= 0), 'occyp_type'] = 'nan'
 
         df.loc[:, 'money_relation'] = df['income_type'] + ' ' + df['Education'] + ' ' + df['occyp_type']
         # df.loc[:, 'gneder_occuyp'] = df['gender'] + ' ' + df['occyp_type']
@@ -428,10 +429,12 @@ class PreprocesserGBoost():
 
 
 
-        df = df.drop(['gender', 'working_day', 'phone', 'make_card_working', 'make_card_birth', 'not_working_day'], axis=1)
-        for i in ['gender', 'phone']:
+        # df = df.drop(['gender', 'working_day', 'phone', 'make_card_working', 'make_card_birth', 'not_working_day'], axis=1)
+        df = df.drop(['gender', 'not_working_day', 'begin_month', 'make_card_working', 'make_card_birth', 'phone', 'email',
+             'occyp_type', 'working_day', 'income_type', 'family_type', 'occuyp_car', 'DAYS_BIRTH'], axis=1)
+        for i in ['gender', 'phone', 'email', 'occyp_type', 'income_type', 'family_type', 'occuyp_car']:
             categorical_column.remove(i)
-        for i in ['working_day', 'make_card_working', 'make_card_birth', 'not_working_day']:
+        for i in ['not_working_day', 'begin_month', 'make_card_working', 'make_card_birth', 'working_day', 'DAYS_BIRTH']:
             numeric_column.remove(i)
 
         print(df.iloc[0,:])
@@ -469,7 +472,6 @@ class PreprocesserGBoost():
 
         df[numeric_column] = z_score_nomalizer(typed, df[numeric_column])
         # df = df.drop(['DAYS_BIRTH', 'working_day', 'begin_month', 'not_working_day', 'Annual_income'], axis=1)
-
         # if typed == 'train':
         #     df = df.drop(df[(df['all_income'] < df['all_income'].quantile(0.25) - 1.5 * (
         #                 df['all_income'].quantile(0.75) - df['all_income'].quantile(0.25)))].index, axis=0)
@@ -491,7 +493,7 @@ class PreprocesserGBoost():
         # fullModel = OLS(y, df)
         # fittedFullModel = fullModel.fit()
         # print(fittedFullModel.summary())
-        # df = df.drop(['DAYS_BIRTH', 'income_type', 'Education', 'family_type', 'house_type', 'occyp_type', 'begin_month', 'money_relation', 'family_house'], axis=1)
+        # df = df.drop(['gender', 'not_working_day', 'begin_month', 'make_card_working', 'make_card_birth', 'phone', 'email', 'occyp_type', 'working_day', 'income_type', 'family_type', 'occuyp_car', 'DAYS_BIRTH'], axis=1)
         # vif = pd.DataFrame()
         # vif["VIF Factor"] = [variance_inflation_factor(df.values, i) for i in range(df.shape[1])]
         # vif["features"] = df.columns

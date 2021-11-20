@@ -134,33 +134,39 @@ def only_catbooost():
     # tuning(X, y, categorical_columns)
 
     stacking = Stacking.StackingKfold(X, y, X_submmit, categorical_columns)
-    # best_param_lgbm = stacking.tuning_lgbm_stack(100, 13)
-    # print(best_param_lgbm)
-    # with open('./data/params/best_param_lgbm_stacked', 'wb') as f:
-    #     pickle.dump(best_param_lgbm, f)
 
-    stacking.stakcing(18)
-    stacking.stacking_last(18)
+    # tuning(X, y, categorical_columns)
+    # stacking.stakcing(13)
+    best_param_lgbm = stacking.tuning_lgbm_stack(25, 10)
+    print(best_param_lgbm)
+    with open('./data/params/best_param_lgbm_stacked', 'wb') as f:
+        pickle.dump(best_param_lgbm, f)
+    stacking.stacking_last(13)
     #
     # stacking.r(18, 100)
 
 def tuning(X, y, categorical_columns):
     tunner = ParamTuning.Tuner(X, y, categorical_columns)
 
-    # best_param_rf = tunner.tuning_rf()
-    # print(best_param_rf)
-    # with open('./data/params/best_param_rf', 'wb') as f:
-    #     pickle.dump(best_param_rf, f)
+    best_param_ada = tunner.tuning_ada(n_trials=200)
+    print(best_param_ada)
+    with open('./data/params/best_param_ada', 'wb') as f:
+        pickle.dump(best_param_ada, f)
 
-    # best_param_lgbm = tunner.tuning_lgbm(n_trials=150)
-    # print(best_param_lgbm)
-    # with open('./data/params/best_param_lgbm', 'wb') as f:
-    #     pickle.dump(best_param_lgbm, f)
+    best_param_rf = tunner.tuning_rf(n_trials=200)
+    print(best_param_rf)
+    with open('./data/params/best_param_rf', 'wb') as f:
+        pickle.dump(best_param_rf, f)
 
-    # best_param_xgb = tunner.tuning_xgboost(n_trials=150)
-    # print(best_param_xgb)
-    # with open('./data/params/best_param_xgb', 'wb') as f:
-    #     pickle.dump(best_param_xgb, f)
+    best_param_lgbm = tunner.tuning_lgbm(n_trials=200)
+    print(best_param_lgbm)
+    with open('./data/params/best_param_lgbm', 'wb') as f:
+        pickle.dump(best_param_lgbm, f)
+
+    best_param_xgb = tunner.tuning_xgboost(n_trials=200)
+    print(best_param_xgb)
+    with open('./data/params/best_param_xgb', 'wb') as f:
+        pickle.dump(best_param_xgb, f)
 
     best_param_catboost = tunner.tuning_catboost(n_trials=100)
     print(best_param_catboost)

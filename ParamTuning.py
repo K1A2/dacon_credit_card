@@ -5,7 +5,8 @@ from catboost import CatBoostClassifier, Pool
 from lightgbm import LGBMClassifier
 from lightgbm.callback import early_stopping, log_evaluation
 from xgboost import XGBClassifier
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
+from sklearn.tree import DecisionTreeClassifier
 
 from sklearn.model_selection import train_test_split
 import pandas as pd
@@ -75,7 +76,7 @@ class Tuner():
                 vaild_data = Pool(valid_x, valid_y, cat_features=categorical_columns)
 
                 clf = CatBoostClassifier(**param)
-                clf.fit(train_data, eval_set=vaild_data, early_stopping_rounds=5000, verbose=5000)
+                clf.fit(train_data, eval_set=vaild_data, early_stopping_rounds=100, verbose=500)
 
                 predictions = clf.predict_proba(valid_x)
                 logloss = log_loss(to_categorical(valid_y), predictions)
@@ -144,7 +145,7 @@ class Tuner():
 
                 lgbm = LGBMClassifier(**param,)
                 lgbm.fit(train_x, train_y, eval_set=[(train_x, train_y), (valid_x, valid_y)],
-                         callbacks=[early_stopping(stopping_rounds=1000), log_evaluation(period=5000)])
+                         callbacks=[early_stopping(stopping_rounds=100), log_evaluation(period=50)])
 
                 predictions = lgbm.predict_proba(valid_x)
                 logloss = log_loss(to_categorical(valid_y), predictions)
@@ -200,7 +201,7 @@ class Tuner():
                     'reg_alpha': trial.suggest_float('reg_alpha', 0.0, 120.0),
                     'reg_lambda': trial.suggest_float('reg_lambda', 0.0, 1.0),
                     'grow_policy': trial.suggest_categorical(
-                        'grow_policy', ['lossguide']
+                        'grow_policy', ['lossguide', 'depthwise']
                     ),
                     'subsample': trial.suggest_float('subsample', 0.5, 1.0),
                 }
@@ -218,7 +219,7 @@ class Tuner():
 
                 xgb = XGBClassifier(**param,)
                 xgb.fit(train_x, train_y, eval_set=[(train_x, train_y), (valid_x, valid_y)],
-                        early_stopping_rounds=1000, verbose=500, eval_metric='mlogloss')
+                        early_stopping_rounds=500, verbose=500, eval_metric='mlogloss')
 
                 predictions = xgb.predict_proba(valid_x)
                 logloss = log_loss(to_categorical(valid_y), predictions)
@@ -246,7 +247,101 @@ class Tuner():
             print("    {}: {}".format(key, value))
         return param_defulat
 
-    def tuning_rf(self):
+    # def tuning_rf(self):
+    #     train_x = self.__train_x.values
+    #     train_y = self.__train_y.values.ravel()
+    #     valid_x = self.__valid_x.values
+    #     valid_y = self.__valid_y.values.ravel()
+    #
+    #     train_y = train_y.astype(int)
+    #     valid_y = valid_y.astype(int)
+    #
+    #     param_defulat = {
+    #         'n_estimators': [10, 50, 100, 200, 300],
+    #         'max_depth': [6, 8, 10, 12, 16, 24],
+    #         'min_samples_leaf': [8, 12, 18, 22],
+    #         'min_samples_split': [8, 16, 20, 24],
+    #     }
+    #
+    #     rf = RandomForestClassifier(random_state=42, n_jobs=12)
+    #     grid_cv = GridSearchCV(rf, param_grid=param_defulat, cv=18, n_jobs=12)
+    #     grid_cv.fit(train_x, train_y)
+    #
+    #     print('최적 하이퍼 파라미터: ', grid_cv.best_params_)
+    #     print('최고 예측 정확도: {:.4f}'.format(grid_cv.best_score_))
+    #
+    #     param_defulat = {
+    #         'random_state': 42,
+    #         'n_jobs': 12
+    #     }
+    #     for k, v in grid_cv.best_params_.items():
+    #         param_defulat[k] = v
+    #
+    #     rf = RandomForestClassifier(**param_defulat)
+    #     rf.fit(train_x, train_y)
+    #     predictions = rf.predict_proba(valid_x)
+    #     logloss = log_loss(to_categorical(valid_y), predictions)
+    #     print(f"RandomForest logloss: {logloss}")
+    #
+    #     return param_defulat
+
+    def tuning_rf(self, n_trials):
+        train_x = self.__train_x.values
+        train_y = self.__train_y.values.ravel()
+        valid_x = self.__valid_x.values
+        valid_y = self.__valid_y.values.ravel()
+
+        train_y = train_y.astype(int)
+        valid_y = valid_y.astype(int)
+
+        param_defulat = {}
+
+        def objective(trial):
+            try:
+                param = {
+                    'n_estimators': trial.suggest_int('n_estimators', 5, 300),
+                    'max_depth': trial.suggest_int('max_depth', 5, 30),
+                    'min_samples_leaf': trial.suggest_int('min_samples_leaf', 2, 30),
+                    'min_samples_split': trial.suggest_int('min_samples_split', 2, 30),
+                    'random_state': trial.suggest_int('random_state', 1, 1000),
+                }
+
+                for k, v in param_defulat.items():
+                    param[k] = v
+
+                print(f"{trial.number}번\n" + "{")
+                for k, v in param.items():
+                    print(f"{k}: {v}")
+                print("}")
+
+                rf = RandomForestClassifier(**param,)
+                rf.fit(train_x, train_y)
+
+                predictions = rf.predict_proba(valid_x)
+                logloss = log_loss(to_categorical(valid_y), predictions)
+
+                print(f"{trial.number}번 logloss: {logloss}")
+
+                return logloss
+            except:
+                return 100
+
+        study = optuna.create_study(direction='minimize')
+        study.optimize(objective, n_trials=n_trials)
+
+        print("Number of finished trials: {}".format(len(study.trials)))
+        print("Best trial:")
+        trial = study.best_trial
+        print("  Value: {}".format(trial.value))
+        print("  Params: ")
+
+        for key, value in trial.params.items():
+            param_defulat[key] = value
+        for key, value in param_defulat.items():
+            print("    {}: {}".format(key, value))
+        return param_defulat
+
+    def tuning_ada(self, n_trials):
         train_x = self.__train_x.values
         train_y = self.__train_y.values.ravel()
         valid_x = self.__valid_x.values
@@ -256,30 +351,50 @@ class Tuner():
         valid_y = valid_y.astype(int)
 
         param_defulat = {
-            'n_estimators': [10, 50, 100, 200, 300],
-            'max_depth': [6, 8, 10, 12, 16, 24],
-            'min_samples_leaf': [8, 12, 18, 22],
-            'min_samples_split': [8, 16, 20, 24],
+            'learning_rate': 0.015
         }
 
-        rf = RandomForestClassifier(random_state=42, n_jobs=12)
-        grid_cv = GridSearchCV(rf, param_grid=param_defulat, cv=18, n_jobs=12)
-        grid_cv.fit(train_x, train_y)
+        def objective(trial):
+            try:
+                param = {
+                    'max_depth': trial.suggest_int('max_depth', 1, 30),
+                    'n_estimators': trial.suggest_int('n_estimators', 5, 350),
+                    'random_state': trial.suggest_int('random_state', 1, 1000),
+                }
 
-        print('최적 하이퍼 파라미터: ', grid_cv.best_params_)
-        print('최고 예측 정확도: {:.4f}'.format(grid_cv.best_score_))
+                for k, v in param_defulat.items():
+                    param[k] = v
 
-        param_defulat = {
-            'random_state': 42,
-            'n_jobs': 12
-        }
-        for k, v in grid_cv.best_params_.items():
-            param_defulat[k] = v
+                print(f"{trial.number}번\n" + "{")
+                for k, v in param.items():
+                    print(f"{k}: {v}")
+                print("}")
+                param['base_estimator'] = DecisionTreeClassifier(max_depth=param['max_depth'])
+                del param['max_depth']
 
-        rf = RandomForestClassifier(**param_defulat)
-        rf.fit(train_x, train_y)
-        predictions = rf.predict_proba(valid_x)
-        logloss = log_loss(to_categorical(valid_y), predictions)
-        print(f"RandomForest logloss: {logloss}")
+                rf = AdaBoostClassifier(**param,)
+                rf.fit(train_x, train_y)
 
+                predictions = rf.predict_proba(valid_x)
+                logloss = log_loss(to_categorical(valid_y), predictions)
+
+                print(f"{trial.number}번 logloss: {logloss}")
+
+                return logloss
+            except:
+                return 100
+
+        study = optuna.create_study(direction='minimize')
+        study.optimize(objective, n_trials=n_trials)
+
+        print("Number of finished trials: {}".format(len(study.trials)))
+        print("Best trial:")
+        trial = study.best_trial
+        print("  Value: {}".format(trial.value))
+        print("  Params: ")
+
+        for key, value in trial.params.items():
+            param_defulat[key] = value
+        for key, value in param_defulat.items():
+            print("    {}: {}".format(key, value))
         return param_defulat
