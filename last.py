@@ -27,10 +27,8 @@ numermic_col = []
 cate_col = []
 
 numermic_col = ['Annual_income','working_day','begin_month','DAYS_BIRTH']
-default_numermic_col = ['Annual_income','working_day','begin_month','DAYS_BIRTH']
 default_cate_col = ['gender','income_type','Education','family_type','house_type','work_phone','phone','email','occyp_type','car_reality']
 cate_col = ['gender','income_type','Education','family_type','house_type','work_phone','phone','email','occyp_type','car_reality']
-od_col = []
 
 print(train_data.head())
 
