@@ -115,7 +115,6 @@ for col in default_cate_col:
     train_data[col] = minmax.fit_transform(train_data[col])
     test_data[col] = minmax.transform(test_data[col])
 
-
 income_range = [0, 180000, 330000, 490000, 640000, 800000, 950000, 1110000, 1260000, 1420000]
 cnt = 0
 for i in income_range:

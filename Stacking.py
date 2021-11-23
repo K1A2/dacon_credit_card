@@ -27,6 +27,7 @@ class StackingKfold():
     __X_test_cat:pd.DataFrame = None
     __categorical_columns_cat = None
 
+    # Stacking.StackingKfold(train_data, train_data_y, test_data, cate_col)
     def __init__(self, X, y, X_test, categorical_columns):
         self.__X = X.drop(['Owner'], axis=1)
         self.__y = y
